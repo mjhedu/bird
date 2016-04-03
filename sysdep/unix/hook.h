@@ -14,7 +14,7 @@
 #define HOOK_POST_CONFIGURE		0x4
 #define HOOK_SHUTDOWN			0x5
 
-#define MAX_HOOKS		24
+#define MAX_HOOKS		32
 
 struct glob_hook
 {
@@ -38,8 +38,11 @@ struct hook_execv_data
   void *data, *add_data;
   const char *hook_string;
   const char *protocol;
+  char **argv;
   u32 flags;
 };
+
+
 
 void
 hook_setenv_conf_generic (void *C);
@@ -75,7 +78,7 @@ int
 do_execv (const char *exec, u32 index, struct hook_execv_data *data);
 struct hook_execv_data
 hook_execv_mkdata (u32 ac, void *pre, void *data, const char *hs,
-		   const char *proto);
+		   const char *proto, void *argv);
 
 int
 hook_run (u32 index, void *C, execv_callback add, void* add_data);
@@ -89,5 +92,6 @@ hook_run (u32 index, void *C, execv_callback add, void* add_data);
 #include <limits.h>
 
 #define MAX_ENV_SIZE	PATH_MAX
+#define PTRSIZE 	sizeof(void*)
 
 #endif /* SYSDEP_UNIX_HOOK_H_ */

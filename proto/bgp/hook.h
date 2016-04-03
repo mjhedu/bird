@@ -8,7 +8,7 @@
 int
 bgp_parse_hooks (void *p);
 int
-bgp_hook_run (unsigned int flags, void *pp);
+bgp_hook_run (unsigned int flags, void *pp, void *argv);
 int
 bgp_check_hooks (void *pp);
 
@@ -39,6 +39,8 @@ typedef struct glob_hook_config bgp_hook_config;
 #define BGP_HOOK_CONN_TIMEOUT		0x13
 #define BGP_HOOK_KEEPALIVE		0x14
 #define BGP_HOOK_RECONFIGURE		0x15
+#define BGP_HOOK_WITHDRAW		0x16
+#define BGP_HOOK_ADD			0x17
 
 void
 bgp_handle_invalid_in_conn (u32 index, void *data);

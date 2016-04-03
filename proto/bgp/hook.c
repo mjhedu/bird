@@ -34,7 +34,8 @@ static const char *hook_strings[MAX_HOOKS] =
 	  ] = "BGP_HOOK_FEED_BEGIN", [BGP_HOOK_FEED_END ] = "BGP_HOOK_FEED_END",
       [BGP_HOOK_KEEPALIVE] = "BGP_HOOK_KEEPALIVE", [BGP_HOOK_RECONFIGURE
 	  ] = "BGP_HOOK_RECONFIGURE", [BGP_HOOK_CONN_TIMEOUT
-	  ] = "BGP_HOOK_CONN_TIMEOUT" };
+	  ] = "BGP_HOOK_CONN_TIMEOUT", [BGP_HOOK_ADD ] = "BGP_HOOK_ADD",
+      [BGP_HOOK_WITHDRAW ] = "BGP_HOOK_WITHDRAW" };
 
 static int
 bgp_create_hook (u32 index, struct bgp_proto *p)
@@ -171,13 +172,13 @@ bgp_build_hook_envvars (u32 index, void *P)
 }
 
 int
-bgp_hook_run (u32 index, void *P)
+bgp_hook_run (u32 index, void *P, void *argv)
 {
   struct bgp_proto *p = (struct bgp_proto *) P;
 
   if (p == NULL)
     {
-      return HOOK_STATUS_NONE;
+      return HOOK_STATUS_NONE ;
     }
 
   bgp_hook *h = &p->hooks[index];
@@ -188,14 +189,14 @@ bgp_hook_run (u32 index, void *P)
       struct hook_execv_data data = hook_execv_mkdata (h->ac,
 						       bgp_build_hook_envvars,
 						       P, GET_HS(index),
-						       p->cf->c.name);
+						       p->cf->c.name, argv);
 
       return do_execv (h->exec, index, &data);
 
     }
   else
     {
-      return HOOK_STATUS_NONE;
+      return HOOK_STATUS_NONE ;
     }
 }
 

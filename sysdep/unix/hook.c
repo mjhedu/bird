@@ -21,7 +21,7 @@ static const char *hook_strings[MAX_HOOKS] =
   { [HOOK_CONN_INBOUND_UNEXPECTED ] = "HOOK_CONN_INBOUND_UNEXPECTED", [HOOK_LOAD
       ] = "HOOK_LOAD", [HOOK_POST_CONFIGURE] = "HOOK_POST_CONFIGURE",
       [HOOK_PRE_CONFIGURE] = "HOOK_PRE_CONFIGURE", [HOOK_SHUTDOWN
-	  ] = "HOOK_SHUTDOWN" };
+	  ] = "HOOK_SHUTDOWN"  };
 
 static int
 prep_for_exec (void)
@@ -76,9 +76,16 @@ do_execv (const char *exec, u32 index, struct hook_execv_data *data)
 	}
       else
 	{
-	  const char *argv[] =
-	    { [0] = exec, [1] = NULL };
-	  execv (exec, (char**) argv);
+	  if (data->argv == NULL)
+	    {
+	      const char *argv[] =
+		{ [0] = exec, [1] = NULL };
+	      execv (exec, (char**) argv);
+	    }
+	  else
+	    {
+	      execv (exec, data->argv);
+	    }
 	  ERRNO_PRINT("%s: execv failed [%s]", data->hook_string)
 	  _exit (1);
 	}
@@ -92,7 +99,7 @@ do_execv (const char *exec, u32 index, struct hook_execv_data *data)
     }
   else
     {
-      log (L_DEBUG "%s: %s: %u executed '%s'", data->protocol,
+      log (L_DEBUG "%s: %s: %u executing '%s'", data->protocol,
 	   data->hook_string, c_pid, exec);
 
       int status;
@@ -126,11 +133,11 @@ do_execv (const char *exec, u32 index, struct hook_execv_data *data)
 
 struct hook_execv_data
 hook_execv_mkdata (u32 ac, void *pre, void *data, const char *hs,
-		   const char *proto)
+		   const char *proto, void *argv)
 {
   struct hook_execv_data t =
     { .flags = ac, .pre = pre, .data = data, .hook_string = hs, .protocol =
-	proto };
+	proto, .argv = (char**) argv };
   return t;
 }
 
@@ -160,7 +167,7 @@ hook_run (u32 index, void *C, execv_callback add, void *add_data)
       struct hook_execv_data data = hook_execv_mkdata (h->ac,
 						       build_hook_envvars,
 						       (void*) c, GET_HS(index),
-						       "global");
+						       "global", NULL);
 
       data.add = add;
       data.add_data = add_data;
@@ -197,10 +204,8 @@ hook_setenv_conf_generic (void *c)
       SETENV_INT("%u", b, "GR_WAIT", (unsigned int )cfg->gr_wait);
 
       setenv ("ERR_MSG", cfg->err_msg ? cfg->err_msg : "", 1);
-      setenv ("ERR_FILE_NAME",
-	      cfg->err_file_name ? cfg->err_file_name : "", 1);
+      setenv ("ERR_FILE_NAME", cfg->err_file_name ? cfg->err_file_name : "", 1);
       setenv ("SYSLOG_NAME", cfg->syslog_name ? cfg->syslog_name : "", 1);
-      setenv ("PATH_CONFIG_NAME", cfg->file_name ? cfg->file_name : "",
-	      1);
+      setenv ("PATH_CONFIG_NAME", cfg->file_name ? cfg->file_name : "", 1);
     }
 }

@@ -1192,11 +1192,17 @@ bgp_do_rx_update(struct bgp_conn *conn,
       return;
     }
 
+  char b[128];
   /* Withdraw routes */
   while (withdrawn_len)
     {
       DECODE_PREFIX(withdrawn, withdrawn_len);
       DBG("Withdraw %I/%d\n", prefix, pxlen);
+
+      SETENV_IPTOSTR("PREFIX", &prefix);
+      SETENV_INT("%d",b,"PREFIX_LEN", pxlen);
+
+      bgp_hook_run (BGP_HOOK_WITHDRAW, p, NULL);
 
       bgp_rte_withdraw(p, prefix, pxlen, path_id, &last_id, &src);
     }
@@ -1219,6 +1225,14 @@ bgp_do_rx_update(struct bgp_conn *conn,
     {
       DECODE_PREFIX(nlri, nlri_len);
       DBG("Add %I/%d\n", prefix, pxlen);
+
+      SETENV_IPTOSTR("PREFIX", &prefix);
+      SETENV_INT("%d",b,"PREFIX_LEN", pxlen);
+
+      if ( bgp_hook_run (BGP_HOOK_ADD, p, NULL) & HOOK_STATUS_BAD )
+	{
+	  continue;
+	}
 
       if (a0)
 	bgp_rte_update(p, prefix, pxlen, path_id, &last_id, &src, a0, &a);
@@ -1560,7 +1574,7 @@ bgp_rx_keepalive(struct bgp_conn *conn)
   struct bgp_proto *p = conn->bgp;
 
   BGP_TRACE(D_PACKETS, "Got KEEPALIVE");
-  bgp_hook_run (BGP_HOOK_KEEPALIVE, p);
+  bgp_hook_run (BGP_HOOK_KEEPALIVE, p, NULL);
   bgp_start_timer(conn->hold_timer, conn->hold_time);
   switch (conn->state)
     {
