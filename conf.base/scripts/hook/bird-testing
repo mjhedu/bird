@@ -57,8 +57,16 @@ case ${EVENT} in
 	BGP_HOOK_CONN_OUTBOUND)
 		log ${PROTO_NAME}: outbound connection to ${REMOTE_IP}
 	;;	
+	BGP_HOOK_IMPORT|BGP_HOOK_EXPORT)
+		log ${PROTO_NAME}: ${EVENT}: PREFIX: "${PREFIX}/${PREFIX_LEN} from: [${BGP_FROM}] via [${BGP_NEXT_HOP}] $PATH_ID "
+		log ${PROTO_NAME}: ${EVENT}: PATH: ${BGP_PATH}
+		_exit `expr $RANDOM % 2 \* 2`
+	;;
+	BGP_HOOK_WITHDRAW)
+		log ${PROTO_NAME}: ${EVENT}: "${PREFIX}/${PREFIX_LEN } $PATH_ID $ROUTE_PRIMARY"
+	;;
 	BGP_*)
-		log ${EVENT} occured on ${PROTO_NAME} ${CONN_STATE}
+		log "${EVENT} occured on ${PROTO_NAME} ${CONN_STATE}"
 	;;
 	HOOK_*)
 		#[ $EVENT = HOOK_POST_CONFIGURE ] && {
