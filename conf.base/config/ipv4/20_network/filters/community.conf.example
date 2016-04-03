@@ -1,0 +1,8 @@
+
+filter net_static_in
+{
+        bgp_community.add (NET_LOCAL_COMMUNITY);
+        accept;
+}
+
+
