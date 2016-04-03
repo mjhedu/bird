@@ -42,8 +42,6 @@ struct hook_execv_data
   u32 flags;
 };
 
-
-
 void
 hook_setenv_conf_generic (void *C);
 
@@ -93,5 +91,12 @@ hook_run (u32 index, void *C, execv_callback add, void* add_data);
 
 #define MAX_ENV_SIZE	PATH_MAX
 #define PTRSIZE 	sizeof(void*)
+
+#define _BA_AS_PATH BA_AS_PATH
+
+int
+bgp_hook_filter_export (void *P, void* RT);
+int
+bgp_hook_filter_import (void *P, void *RT);
 
 #endif /* SYSDEP_UNIX_HOOK_H_ */

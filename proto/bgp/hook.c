@@ -6,6 +6,7 @@
 #include "hook.h"
 #include "bgp.h"
 #include "lib/socket.h"
+#include "nest/attrs.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,8 +35,9 @@ static const char *hook_strings[MAX_HOOKS] =
 	  ] = "BGP_HOOK_FEED_BEGIN", [BGP_HOOK_FEED_END ] = "BGP_HOOK_FEED_END",
       [BGP_HOOK_KEEPALIVE] = "BGP_HOOK_KEEPALIVE", [BGP_HOOK_RECONFIGURE
 	  ] = "BGP_HOOK_RECONFIGURE", [BGP_HOOK_CONN_TIMEOUT
-	  ] = "BGP_HOOK_CONN_TIMEOUT", [BGP_HOOK_ADD] = "BGP_HOOK_ADD",
-      [BGP_HOOK_WITHDRAW] = "BGP_HOOK_WITHDRAW" };
+	  ] = "BGP_HOOK_CONN_TIMEOUT", [BGP_HOOK_UPDATE] = "BGP_HOOK_UPDATE",
+      [BGP_HOOK_WITHDRAW] = "BGP_HOOK_WITHDRAW", [BGP_HOOK_IMPORT
+	  ] = "BGP_HOOK_IMPORT", [BGP_HOOK_EXPORT] = "BGP_HOOK_EXPORT" };
 
 static int
 bgp_create_hook (u32 index, struct bgp_proto *p)
@@ -210,4 +212,41 @@ bgp_handle_invalid_in_conn (u32 index, void *data)
   SETENV_IPTOSTR("SOURCE_IP", &sk->saddr);
   SETENV_INT("%hu", b, "REMOTE_PORT", (unsigned short )sk->dport);
   SETENV_INT("%hu", b, "SOURCE_PORT", (unsigned short )sk->sport);
+}
+
+static int
+bgp_hook_filter (u32 index, void *P, void *RT)
+{
+  struct bgp_proto *p = (struct bgp_proto *) P;
+  struct rte *e = (struct rte*) RT;
+
+  char b[MAX_ENV_SIZE];
+
+  SETENV_IPTOSTR("PREFIX", &e->net->n.prefix);
+  SETENV_INT("%hhu", b, "PREFIX_LEN", (unsigned char )e->net->n.pxlen);
+  SETENV_INT("%hhu", b, "FLAGS", (unsigned char )e->net->n.flags);
+
+  SETENV_IPTOSTR("BGP_NEXT_HOP", &e->attrs->gw);
+  SETENV_IPTOSTR("BGP_FROM", &e->attrs->from);
+
+  byte buf[1000];
+
+  eattr *ad = ea_find (e->attrs->eattrs, EA_CODE(EAP_BGP, BA_AS_PATH));
+  as_path_format (ad->u.ptr, buf, sizeof(buf));
+
+  setenv ("BGP_PATH", buf, 1);
+
+  return bgp_hook_run (index, p, NULL);
+}
+
+int
+bgp_hook_filter_import (void *P, void *RT)
+{
+  return bgp_hook_filter (BGP_HOOK_IMPORT, P, RT);
+}
+
+int
+bgp_hook_filter_export (void *P, void *RT)
+{
+  return bgp_hook_filter (BGP_HOOK_EXPORT, P, RT);
 }

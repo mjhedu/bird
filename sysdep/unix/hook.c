@@ -21,7 +21,7 @@ static const char *hook_strings[MAX_HOOKS] =
   { [HOOK_CONN_INBOUND_UNEXPECTED ] = "HOOK_CONN_INBOUND_UNEXPECTED", [HOOK_LOAD
       ] = "HOOK_LOAD", [HOOK_POST_CONFIGURE] = "HOOK_POST_CONFIGURE",
       [HOOK_PRE_CONFIGURE] = "HOOK_PRE_CONFIGURE", [HOOK_SHUTDOWN
-	  ] = "HOOK_SHUTDOWN"  };
+	  ] = "HOOK_SHUTDOWN" };
 
 static int
 prep_for_exec (void)
