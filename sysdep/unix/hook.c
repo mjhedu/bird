@@ -144,9 +144,9 @@ build_hook_envvars (u32 index, void *C)
 }
 
 int
-hook_run (u32 index, execv_callback add, void *add_data)
+hook_run (u32 index, void *C, execv_callback add, void *add_data)
 {
-  struct config *c = config;
+  struct config *c = (struct config *) C;
 
   if (c == NULL)
     {
@@ -174,8 +174,10 @@ hook_run (u32 index, execv_callback add, void *add_data)
 }
 
 void
-hook_setenv_conf_generic (void)
+hook_setenv_conf_generic (void *c)
 {
+  struct config *cfg = (struct config *) c;
+
   char b[MAX_ENV_SIZE];
 
   SETENV_INT("%d", b, "HOOK_STATUS_NONE", HOOK_STATUS_NONE);
@@ -183,19 +185,22 @@ hook_setenv_conf_generic (void)
   SETENV_INT("%d", b, "HOOK_STATUS_RECONFIGURE", HOOK_STATUS_RECONFIGURE);
   SETENV_INT("%u", b, "BIRD_PID", getpid ());
 
-  SETENV_IPTOSTR("ROUTER_ID", &config->router_id);
-  SETENV_IPTOSTR("LISTEN_BGP_ADDR", &config->listen_bgp_addr);
-  SETENV_INT("%hu", b, "LISTEN_BGP_PORT",
-	     (unsigned short )config->listen_bgp_port);
+  if (cfg != NULL)
+    {
 
-  SETENV_INT("%u", b, "LOAD_TIME", (unsigned int )config->load_time);
-  SETENV_INT("%u", b, "GR_WAIT", (unsigned int )config->gr_wait);
+      SETENV_IPTOSTR("ROUTER_ID", &cfg->router_id);
+      SETENV_IPTOSTR("LISTEN_BGP_ADDR", &cfg->listen_bgp_addr);
+      SETENV_INT("%hu", b, "LISTEN_BGP_PORT",
+		 (unsigned short )cfg->listen_bgp_port);
 
-  setenv ("ERR_MSG", config->err_msg ? config->err_msg : "", 1);
-  setenv ("ERR_FILE_NAME", config->err_file_name ? config->err_file_name : "",
-	  1);
-  setenv ("SYSLOG_NAME", config->syslog_name ? config->syslog_name : "", 1);
-  setenv ("PATH_CONFIG_NAME", config->file_name ? config->file_name : "", 1);
+      SETENV_INT("%u", b, "LOAD_TIME", (unsigned int )cfg->load_time);
+      SETENV_INT("%u", b, "GR_WAIT", (unsigned int )cfg->gr_wait);
 
-  //log (L_DEBUG "hook_init: complete: %u", config->load_time);
+      setenv ("ERR_MSG", cfg->err_msg ? cfg->err_msg : "", 1);
+      setenv ("ERR_FILE_NAME",
+	      cfg->err_file_name ? cfg->err_file_name : "", 1);
+      setenv ("SYSLOG_NAME", cfg->syslog_name ? cfg->syslog_name : "", 1);
+      setenv ("PATH_CONFIG_NAME", cfg->file_name ? cfg->file_name : "",
+	      1);
+    }
 }

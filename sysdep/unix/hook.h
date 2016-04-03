@@ -42,7 +42,7 @@ struct hook_execv_data
 };
 
 void
-hook_setenv_conf_generic (void);
+hook_setenv_conf_generic (void *C);
 
 #define HOOK_F_ASYNC		(u32)1 << 1
 #define HOOK_F_NORECONF		(u32)1 << 2
@@ -78,7 +78,7 @@ hook_execv_mkdata (u32 ac, void *pre, void *data, const char *hs,
 		   const char *proto);
 
 int
-hook_run (u32 index, execv_callback add, void* add_data);
+hook_run (u32 index, void *C, execv_callback add, void* add_data);
 
 #include <stdlib.h>
 

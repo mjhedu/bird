@@ -842,7 +842,7 @@ bgp_incoming_connection(sock *sk, int dummy UNUSED)
     {
       log(L_WARN "BGP: Unexpected connect from unknown address %I%J (port %d)",
 	  sk->daddr, ipa_is_link_local(sk->daddr) ? sk->iface : NULL, sk->dport);
-      hook_run (HOOK_CONN_INBOUND_UNEXPECTED, bgp_handle_invalid_in_conn, (void*)sk);
+      hook_run (HOOK_CONN_INBOUND_UNEXPECTED, p->cf->c.global, bgp_handle_invalid_in_conn, (void*)sk);
       rfree(sk);
       return 0;
     }

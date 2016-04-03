@@ -824,14 +824,14 @@ main(int argc, char **argv)
 
   config_commit(conf, RECONFIG_HARD, 0);
 
-  if ( hook_run (HOOK_LOAD, NULL, NULL) & HOOK_STATUS_BAD )
+  if ( run_in_foreground )
+      {
+        setenv("BIRD_FOREGROUND", "1", 1);
+      }
+
+  if ( hook_run (HOOK_LOAD, conf, NULL, NULL) & HOOK_STATUS_BAD )
     {
       die("HOOK_LOAD: child process requested shutdown..");
-    }
-
-  if ( run_in_foreground )
-    {
-      setenv("BIRD_FOREGROUND", "1", 1);
     }
 
   graceful_restart_init();

@@ -2,7 +2,10 @@
 #
 ## Example BIRD configuration
 #
-# define hook_script "scripts/hook/bird-example"
+# define hook_script "scripts/hook/bird-testing"
+#
+# hook load hook_script;
+# hook shutdown hook_script;
 #
 # protocol bgp testsession1 {
 #	 ...
@@ -58,7 +61,9 @@ case ${EVENT} in
 		log ${BGP_EVENT} occured on ${PROTO_NAME} ${CONN_STATE}
 	;;
 	HOOK_*)
-		[ $EVENT = HOOK_LOAD ] && route_add ${TABLE_NAME} 1.0.0.0/24 && _exit $HOOK_STATUS_RECONFIGURE
+		#[ $EVENT = HOOK_POST_CONFIGURE ] && {
+			
+		#}
 		log "Global event '${EVENT}' occured on [${BIRD_PID}] ${ROUTER_ID} : ${PATH_CONFIG_NAME}"
 	;;
 	*)

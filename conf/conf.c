@@ -288,8 +288,8 @@ config_done(void *unused UNUSED)
 	config_done(NULL);
     }
 
-  hook_setenv_conf_generic();
-  hook_run (HOOK_POST_CONFIGURE, NULL, NULL);
+  hook_setenv_conf_generic(config);
+  hook_run (HOOK_POST_CONFIGURE, config, NULL, NULL);
 }
 
 /**
@@ -328,7 +328,7 @@ config_commit(struct config *c, int type, int timeout)
       return CONF_SHUTDOWN;
     }
 
-  if (hook_run (HOOK_PRE_CONFIGURE, NULL, NULL) & HOOK_STATUS_BAD)
+  if (hook_run (HOOK_PRE_CONFIGURE, config, NULL, NULL) & HOOK_STATUS_BAD)
     {
       log(L_WARN "Configuration was not reloaded");
       return CONF_NOTHING;
@@ -481,14 +481,14 @@ order_shutdown(void)
   if (shutting_down)
     return;
 
-  hook_run (HOOK_SHUTDOWN, NULL, NULL);
-
   log(L_INFO "Shutting down");
   c = lp_alloc(config->mem, sizeof(struct config));
   memcpy(c, config, sizeof(struct config));
   init_list(&c->protos);
   init_list(&c->tables);
   c->shutdown = 1;
+
+  hook_run (HOOK_SHUTDOWN, c, NULL, NULL);
 
   config_commit(c, RECONFIG_HARD, 0);
   shutting_down = 1;

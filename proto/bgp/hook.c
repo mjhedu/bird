@@ -85,8 +85,6 @@ bgp_parse_hooks (void *P)
   SETENV_INT("%d", b, "SECONDARY", p->cf->secondary);
   SETENV_INT("%d", b, "ADD_PATH", p->cf->add_path);
 
-  setenv ("TABLE_NAME", p->p.table->name, 1);
-
   if (p->cf->c.dsc != NULL)
     {
       setenv ("PROTO_DESC", p->cf->c.dsc, 1);
@@ -158,6 +156,7 @@ bgp_build_hook_envvars (u32 index, void *P)
   SETENV_INT("%u", b, "STARTUP_DELAY", p->startup_delay);
   SETENV_INT("%hhu", b, "IS_INTERNAL", p->is_internal);
   SETENV_INT("%u", b, "LOCAL_ID", p->local_id);
+  setenv ("TABLE_NAME", p->p.table->name, 1);
 
   SETENV_IPTOSTR("SOURCE_IP", &p->source_addr);
 
