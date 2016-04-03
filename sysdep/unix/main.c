@@ -766,6 +766,11 @@ main(int argc, char **argv)
     log_init_debug("");
   log_switch(debug_flag, NULL, NULL);
 
+  if ( run_in_foreground )
+    {
+      setenv("BIRD_FOREGROUND", "1", 1);
+    }
+
   resource_init();
   olock_init();
   io_init();
@@ -823,11 +828,6 @@ main(int argc, char **argv)
   signal_init();
 
   config_commit(conf, RECONFIG_HARD, 0);
-
-  if ( run_in_foreground )
-      {
-        setenv("BIRD_FOREGROUND", "1", 1);
-      }
 
   if ( hook_run (HOOK_LOAD, conf, NULL, NULL) & HOOK_STATUS_BAD )
     {
