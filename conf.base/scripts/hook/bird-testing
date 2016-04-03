@@ -58,7 +58,7 @@ case ${EVENT} in
 		log ${PROTO_NAME}: outbound connection to ${REMOTE_IP}
 	;;	
 	BGP_*)
-		log ${BGP_EVENT} occured on ${PROTO_NAME} ${CONN_STATE}
+		log ${EVENT} occured on ${PROTO_NAME} ${CONN_STATE}
 	;;
 	HOOK_*)
 		#[ $EVENT = HOOK_POST_CONFIGURE ] && {

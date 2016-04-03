@@ -34,8 +34,8 @@ static const char *hook_strings[MAX_HOOKS] =
 	  ] = "BGP_HOOK_FEED_BEGIN", [BGP_HOOK_FEED_END ] = "BGP_HOOK_FEED_END",
       [BGP_HOOK_KEEPALIVE] = "BGP_HOOK_KEEPALIVE", [BGP_HOOK_RECONFIGURE
 	  ] = "BGP_HOOK_RECONFIGURE", [BGP_HOOK_CONN_TIMEOUT
-	  ] = "BGP_HOOK_CONN_TIMEOUT", [BGP_HOOK_ADD ] = "BGP_HOOK_ADD",
-      [BGP_HOOK_WITHDRAW ] = "BGP_HOOK_WITHDRAW" };
+	  ] = "BGP_HOOK_CONN_TIMEOUT", [BGP_HOOK_ADD] = "BGP_HOOK_ADD",
+      [BGP_HOOK_WITHDRAW] = "BGP_HOOK_WITHDRAW" };
 
 static int
 bgp_create_hook (u32 index, struct bgp_proto *p)

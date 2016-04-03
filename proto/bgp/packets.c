@@ -1201,6 +1201,7 @@ bgp_do_rx_update(struct bgp_conn *conn,
 
       SETENV_IPTOSTR("PREFIX", &prefix);
       SETENV_INT("%d",b,"PREFIX_LEN", pxlen);
+      SETENV_INT("%u",b,"PATH_ID", (unsigned int)path_id);
 
       bgp_hook_run (BGP_HOOK_WITHDRAW, p, NULL);
 
@@ -1228,6 +1229,7 @@ bgp_do_rx_update(struct bgp_conn *conn,
 
       SETENV_IPTOSTR("PREFIX", &prefix);
       SETENV_INT("%d",b,"PREFIX_LEN", pxlen);
+      SETENV_INT("%u",b,"PATH_ID", (unsigned int)path_id);
 
       if ( bgp_hook_run (BGP_HOOK_ADD, p, NULL) & HOOK_STATUS_BAD )
 	{
