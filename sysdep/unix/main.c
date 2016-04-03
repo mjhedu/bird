@@ -829,6 +829,11 @@ main(int argc, char **argv)
       die("HOOK_LOAD: child process requested shutdown..");
     }
 
+  if ( run_in_foreground )
+    {
+      setenv("BIRD_FOREGROUND", "1", 1);
+    }
+
   graceful_restart_init();
 
 #ifdef LOCAL_DEBUG

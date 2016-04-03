@@ -481,6 +481,8 @@ order_shutdown(void)
   if (shutting_down)
     return;
 
+  hook_run (HOOK_SHUTDOWN, NULL, NULL);
+
   log(L_INFO "Shutting down");
   c = lp_alloc(config->mem, sizeof(struct config));
   memcpy(c, config, sizeof(struct config));

@@ -52,3 +52,17 @@ _exit()
 {
 	exit `set_rstatus ${1}`
 }
+
+if [ -n "${BIRD_FOREGROUND}" ]; then
+	log()
+	{
+		logger -p local0.notice -t ${BASE_PATH}[$$] ${@}
+		echo ${@}
+	}
+	
+else
+	log()
+	{
+		logger -p local0.notice -t ${BASE_PATH}[$$] ${@}		
+	}
+fi
