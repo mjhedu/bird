@@ -226,7 +226,7 @@ bgp_build_route_envvars (u32 index, void *RT)
     {
       SETENV_IPTOSTR("PREFIX", &e->net->n.prefix);
       SETENV_INT("%hhu", b, "PREFIX_LEN", (unsigned char )e->net->n.pxlen);
-      SETENV_INT("%hhu", b, "FLAGS", (unsigned char )e->net->n.flags);
+      SETENV_INT("%hhu", b, "NET_FLAGS", (unsigned char )e->net->n.flags);
     }
 
   if (e->attrs)
