@@ -1044,7 +1044,8 @@ rte_update2(struct announce_hook *ah, net *net, rte *new, struct rte_src *src)
 	new->attrs = rta_lookup(new->attrs);
       new->flags |= REF_COW;
 
-      if ( filter_hook_dispatcher(BGP_HOOK_IMPORT, p, new) & HOOK_STATUS_BAD )
+      if ( !(new->flags & REF_FILTERED) &&
+	  (filter_hook_dispatcher(BGP_HOOK_IMPORT, p, new) & HOOK_STATUS_BAD) )
 	{
 	  if (! ah->in_keep_filtered)
 	    goto drop;
