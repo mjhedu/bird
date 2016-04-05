@@ -6,10 +6,12 @@
  */
 
 #include "nest/bird.h"
+#include "nest/protocol.h"
 
 #include "sysdep/unix/unix.h"
 #include "sysdep/unix/hook.h"
 #include "conf/conf.h"
+
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -133,11 +135,11 @@ do_execv (const char *exec, u32 index, struct hook_execv_data *data)
 
 struct hook_execv_data
 hook_execv_mkdata (u32 ac, void *pre, void *data, const char *hs,
-		   const char *proto, void *argv)
+		   const char *proto, void *add, void *add_data, void *argv)
 {
   struct hook_execv_data t =
     { .flags = ac, .pre = pre, .data = data, .hook_string = hs, .protocol =
-	proto, .argv = (char**) argv };
+	proto, .argv = (char**) argv, .add = add, .add_data = add_data };
   return t;
 }
 
@@ -167,7 +169,8 @@ hook_run (u32 index, void *C, execv_callback add, void *add_data)
       struct hook_execv_data data = hook_execv_mkdata (h->ac,
 						       build_hook_envvars,
 						       (void*) c, GET_HS(index),
-						       "global", NULL);
+						       "global", add, add_data,
+						       NULL);
 
       data.add = add;
       data.add_data = add_data;
@@ -208,4 +211,20 @@ hook_setenv_conf_generic (void *c)
       setenv ("SYSLOG_NAME", cfg->syslog_name ? cfg->syslog_name : "", 1);
       setenv ("PATH_CONFIG_NAME", cfg->file_name ? cfg->file_name : "", 1);
     }
+}
+
+int
+filter_hook_dispatcher (u32 index, void *P, void *RT)
+{
+  struct proto *p = (struct proto*) P;
+
+  if (p->proto->name[0] == 0x42 && p->proto->name[1] == 0x47) // BGP
+    {
+      return bgp_hook_filter (index, P, RT);
+    }
+  else
+    {
+      return HOOK_STATUS_NONE ;
+    }
+
 }

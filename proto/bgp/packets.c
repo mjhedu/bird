@@ -1140,7 +1140,7 @@ bgp_rte_withdraw(struct bgp_proto *p, ip_addr prefix, int pxlen,
 
   RTE_UPDATE_ENVVARS();
 
-  bgp_hook_run (BGP_HOOK_WITHDRAW, p, NULL);
+  bgp_hook_run (BGP_HOOK_WITHDRAW, p, NULL, NULL);
 
   net *n = net_find(p->p.table, prefix, pxlen);
   rte_update2( p->p.main_ahook, n, NULL, *src);
@@ -1586,7 +1586,7 @@ bgp_rx_keepalive(struct bgp_conn *conn)
   struct bgp_proto *p = conn->bgp;
 
   BGP_TRACE(D_PACKETS, "Got KEEPALIVE");
-  bgp_hook_run (BGP_HOOK_KEEPALIVE, p, NULL);
+  bgp_hook_run (BGP_HOOK_KEEPALIVE, p, NULL, NULL);
   bgp_start_timer(conn->hold_timer, conn->hold_time);
   switch (conn->state)
     {

@@ -76,7 +76,7 @@ int
 do_execv (const char *exec, u32 index, struct hook_execv_data *data);
 struct hook_execv_data
 hook_execv_mkdata (u32 ac, void *pre, void *data, const char *hs,
-		   const char *proto, void *argv);
+		   const char *proto, void *add, void *add_data, void *argv);
 
 int
 hook_run (u32 index, void *C, execv_callback add, void* add_data);
@@ -95,8 +95,15 @@ hook_run (u32 index, void *C, execv_callback add, void* add_data);
 #define _BA_AS_PATH BA_AS_PATH
 
 int
-bgp_hook_filter_export (void *P, void* RT);
-int
-bgp_hook_filter_import (void *P, void *RT);
+filter_hook_dispatcher (u32 index, void *P, void *RT);
+
+#define BGP_HOOK_IMPORT			0x18
+#define BGP_HOOK_EXPORT			0x19
+
+typedef int
+generic_hook_filter (u32 index, void *P, void *RT);
+
+
+generic_hook_filter bgp_hook_filter;
 
 #endif /* SYSDEP_UNIX_HOOK_H_ */

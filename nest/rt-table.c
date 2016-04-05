@@ -247,7 +247,7 @@ export_filter(struct announce_hook *ah, rte *rt0, rte **rt_free, ea_list **tmpa,
       goto reject;
     }
 
-  if ( bgp_hook_filter_export(p, rt0) & HOOK_STATUS_BAD )
+  if ( filter_hook_dispatcher(BGP_HOOK_EXPORT, p, rt0) & HOOK_STATUS_BAD )
     {
       goto reject;
     }
@@ -1044,7 +1044,7 @@ rte_update2(struct announce_hook *ah, net *net, rte *new, struct rte_src *src)
 	new->attrs = rta_lookup(new->attrs);
       new->flags |= REF_COW;
 
-      if ( bgp_hook_filter_import(p, new) & HOOK_STATUS_BAD )
+      if ( filter_hook_dispatcher(BGP_HOOK_IMPORT, p, new) & HOOK_STATUS_BAD )
 	{
 	  if (! ah->in_keep_filtered)
 	    goto drop;

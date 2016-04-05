@@ -2,7 +2,7 @@
 #
 ## Example BIRD configuration
 #
-# define hook_script "scripts/hook/bird-testing"
+# define hook_script "scripts/hook/bird-testing";
 #
 # hook load hook_script;
 # hook shutdown hook_script;

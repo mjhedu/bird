@@ -174,7 +174,7 @@ bgp_build_hook_envvars (u32 index, void *P)
 }
 
 int
-bgp_hook_run (u32 index, void *P, void *argv)
+bgp_hook_run (u32 index, void *P, execv_callback add, void *add_data)
 {
   struct bgp_proto *p = (struct bgp_proto *) P;
 
@@ -191,7 +191,8 @@ bgp_hook_run (u32 index, void *P, void *argv)
       struct hook_execv_data data = hook_execv_mkdata (h->ac,
 						       bgp_build_hook_envvars,
 						       P, GET_HS(index),
-						       p->cf->c.name, argv);
+						       p->cf->c.name, add,
+						       add_data, NULL);
 
       return do_execv (h->exec, index, &data);
 
@@ -214,15 +215,9 @@ bgp_handle_invalid_in_conn (u32 index, void *data)
   SETENV_INT("%hu", b, "SOURCE_PORT", (unsigned short )sk->sport);
 }
 
-static int
-bgp_hook_filter (u32 index, void *P, void *RT)
+static void
+bgp_build_route_envvars (u32 index, void *RT)
 {
-  if (((struct proto*) P)->proto->attr_class != EAP_BGP || RT == NULL)
-    {
-      return HOOK_STATUS_NONE ;
-    }
-
-  struct bgp_proto *p = (struct bgp_proto *) P;
   struct rte *e = (struct rte*) RT;
 
   char b[MAX_ENV_SIZE];
@@ -248,18 +243,13 @@ bgp_hook_filter (u32 index, void *P, void *RT)
 	  setenv ("BGP_PATH", buf, 1);
 	}
     }
-
-  return bgp_hook_run (index, p, NULL);
 }
 
 int
-bgp_hook_filter_import (void *P, void *RT)
+bgp_hook_filter (u32 index, void *P, void *RT)
 {
-  return bgp_hook_filter (BGP_HOOK_IMPORT, P, RT);
+  struct bgp_proto *p = (struct bgp_proto *) P;
+
+  return bgp_hook_run (index, p, bgp_build_route_envvars, RT);
 }
 
-int
-bgp_hook_filter_export (void *P, void *RT)
-{
-  return bgp_hook_filter (BGP_HOOK_EXPORT, P, RT);
-}
