@@ -1047,8 +1047,13 @@ rte_update2(struct announce_hook *ah, net *net, rte *new, struct rte_src *src)
       if ( !(new->flags & REF_FILTERED) &&
 	  (filter_hook_dispatcher(BGP_HOOK_IMPORT, p, new) & HOOK_STATUS_BAD) )
 	{
+	  stats->imp_updates_filtered++;
+	  rte_trace_in(D_FILTERS, p, new, "filtered out");
+
 	  if (! ah->in_keep_filtered)
 	    goto drop;
+
+	  new->flags |= REF_FILTERED;
 	}
     }
   else
