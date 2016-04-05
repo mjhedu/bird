@@ -1,7 +1,0 @@
-include "defines/*.conf";
-include "filters/*.conf";
-include "static/*.conf";
-include "kernel/*.conf";
-include "templates/*.conf";
-include "peers_internal/*.conf";
-include "peers_external/*.conf";

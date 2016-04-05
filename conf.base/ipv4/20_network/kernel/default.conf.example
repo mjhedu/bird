@@ -1,7 +1,0 @@
-
-protocol kernel net_default_ks0 {        
-        table net_default;
-        kernel table NET_KTABLE;
-}
-
-

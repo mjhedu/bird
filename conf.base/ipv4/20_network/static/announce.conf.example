@@ -1,5 +1,0 @@
-
-protocol static net_default_announce {
-	table net_default;	
-}
-
