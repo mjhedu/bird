@@ -217,24 +217,37 @@ bgp_handle_invalid_in_conn (u32 index, void *data)
 static int
 bgp_hook_filter (u32 index, void *P, void *RT)
 {
+  if (((struct proto*) P)->proto->attr_class != EAP_BGP || RT == NULL)
+    {
+      return HOOK_STATUS_NONE ;
+    }
+
   struct bgp_proto *p = (struct bgp_proto *) P;
   struct rte *e = (struct rte*) RT;
 
   char b[MAX_ENV_SIZE];
 
-  SETENV_IPTOSTR("PREFIX", &e->net->n.prefix);
-  SETENV_INT("%hhu", b, "PREFIX_LEN", (unsigned char )e->net->n.pxlen);
-  SETENV_INT("%hhu", b, "FLAGS", (unsigned char )e->net->n.flags);
+  if (e->net)
+    {
+      SETENV_IPTOSTR("PREFIX", &e->net->n.prefix);
+      SETENV_INT("%hhu", b, "PREFIX_LEN", (unsigned char )e->net->n.pxlen);
+      SETENV_INT("%hhu", b, "FLAGS", (unsigned char )e->net->n.flags);
+    }
 
-  SETENV_IPTOSTR("BGP_NEXT_HOP", &e->attrs->gw);
-  SETENV_IPTOSTR("BGP_FROM", &e->attrs->from);
+  if (e->attrs)
+    {
+      SETENV_IPTOSTR("BGP_NEXT_HOP", &e->attrs->gw);
+      SETENV_IPTOSTR("BGP_FROM", &e->attrs->from);
 
-  byte buf[1000];
+      byte buf[1000];
 
-  eattr *ad = ea_find (e->attrs->eattrs, EA_CODE(EAP_BGP, BA_AS_PATH));
-  as_path_format (ad->u.ptr, buf, sizeof(buf));
-
-  setenv ("BGP_PATH", buf, 1);
+      eattr *ad = ea_find (e->attrs->eattrs, EA_CODE(EAP_BGP, BA_AS_PATH));
+      if (ad)
+	{
+	  as_path_format (ad->u.ptr, buf, sizeof(buf));
+	  setenv ("BGP_PATH", buf, 1);
+	}
+    }
 
   return bgp_hook_run (index, p, NULL);
 }
