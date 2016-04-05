@@ -146,10 +146,12 @@ hook_execv_mkdata (u32 ac, void *pre, void *data, const char *hs,
 static void
 build_hook_envvars (u32 index, void *C)
 {
-  //struct config *c = (struct config *) C;
+  struct config *c = (struct config *) C;
   char b[MAX_ENV_SIZE];
   setenv ("EVENT", GET_HS(index), 1);
   SETENV_INT("%u", b, "EVENT_INDEX", index);
+  setenv ("ERR_MSG", c->err_msg ? c->err_msg : "", 1);
+  setenv ("ERR_FILE_NAME", c->err_file_name ? c->err_file_name : "", 1);
 }
 
 int
@@ -206,8 +208,11 @@ hook_setenv_conf_generic (void *c)
       SETENV_INT("%u", b, "LOAD_TIME", (unsigned int )cfg->load_time);
       SETENV_INT("%u", b, "GR_WAIT", (unsigned int )cfg->gr_wait);
 
-      setenv ("ERR_MSG", cfg->err_msg ? cfg->err_msg : "", 1);
-      setenv ("ERR_FILE_NAME", cfg->err_file_name ? cfg->err_file_name : "", 1);
+      /*
+       setenv ("ERR_MSG", cfg->err_msg ? cfg->err_msg : "", 1);
+       setenv ("ERR_FILE_NAME", cfg->err_file_name ? cfg->err_file_name : "", 1);
+      */
+
       setenv ("SYSLOG_NAME", cfg->syslog_name ? cfg->syslog_name : "", 1);
       setenv ("PATH_CONFIG_NAME", cfg->file_name ? cfg->file_name : "", 1);
     }
