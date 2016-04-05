@@ -68,33 +68,6 @@ bgp_parse_hooks (void *P)
 	}
     }
 
-  char b[MAX_ENV_SIZE];
-  SETENV_INT("%hu", b, "REMOTE_PORT", p->cf->remote_port);
-  SETENV_INT("%u", b, "REMOTE_AS", p->cf->remote_as);
-  SETENV_IPTOSTR("REMOTE_IP", &p->cf->remote_ip);
-  SETENV_IPTOSTR("CFG_SOURCE_IP", &p->cf->source_addr);
-  SETENV_INT("%d", b, "IGP_METRIC", p->cf->igp_metric);
-  SETENV_INT("%d", b, "MED_METRIC", p->cf->med_metric);
-  SETENV_INT("%d", b, "GW_MODE", p->cf->gw_mode);
-  SETENV_INT("%d", b, "PREFER_OLDER", p->cf->prefer_older);
-  SETENV_INT("%d", b, "DETERMINISTIC_MED", p->cf->deterministic_med);
-  SETENV_INT("%d", b, "DEFAULT_LOCAL_PREF", p->cf->default_local_pref);
-  SETENV_INT("%d", b, "CAPABILITIES", p->cf->capabilities);
-  SETENV_INT("%d", b, "ENABLE_REFRESH", p->cf->enable_refresh);
-  SETENV_INT("%d", b, "ENABLE_AS4", p->cf->enable_as4);
-  SETENV_INT("%u", b, "RR_CLUSTER_ID", p->cf->rr_cluster_id);
-  SETENV_INT("%d", b, "ADVERTISE_IPV4", p->cf->advertise_ipv4);
-  SETENV_INT("%d", b, "PASSIVE", p->cf->passive);
-  SETENV_INT("%d", b, "SECONDARY", p->cf->secondary);
-  SETENV_INT("%d", b, "ADD_PATH", p->cf->add_path);
-
-  if (p->cf->c.dsc != NULL)
-    {
-      setenv ("PROTO_DESC", p->cf->c.dsc, 1);
-    }
-
-  setenv ("PROTO_NAME", p->cf->c.name, 1);
-
   return 0;
 }
 
@@ -159,6 +132,33 @@ bgp_build_hook_envvars (u32 index, void *P)
   SETENV_INT("%u", b, "STARTUP_DELAY", p->startup_delay);
   SETENV_INT("%hhu", b, "IS_INTERNAL", p->is_internal);
   SETENV_INT("%u", b, "LOCAL_ID", p->local_id);
+
+
+  SETENV_INT("%hu", b, "REMOTE_PORT", p->cf->remote_port);
+  SETENV_INT("%u", b, "REMOTE_AS", p->cf->remote_as);
+  SETENV_IPTOSTR("REMOTE_IP", &p->cf->remote_ip);
+  SETENV_IPTOSTR("CFG_SOURCE_IP", &p->cf->source_addr);
+  SETENV_INT("%d", b, "IGP_METRIC", p->cf->igp_metric);
+  SETENV_INT("%d", b, "MED_METRIC", p->cf->med_metric);
+  SETENV_INT("%d", b, "GW_MODE", p->cf->gw_mode);
+  SETENV_INT("%d", b, "PREFER_OLDER", p->cf->prefer_older);
+  SETENV_INT("%d", b, "DETERMINISTIC_MED", p->cf->deterministic_med);
+  SETENV_INT("%d", b, "DEFAULT_LOCAL_PREF", p->cf->default_local_pref);
+  SETENV_INT("%d", b, "CAPABILITIES", p->cf->capabilities);
+  SETENV_INT("%d", b, "ENABLE_REFRESH", p->cf->enable_refresh);
+  SETENV_INT("%d", b, "ENABLE_AS4", p->cf->enable_as4);
+  SETENV_INT("%u", b, "RR_CLUSTER_ID", p->cf->rr_cluster_id);
+  SETENV_INT("%d", b, "ADVERTISE_IPV4", p->cf->advertise_ipv4);
+  SETENV_INT("%d", b, "PASSIVE", p->cf->passive);
+  SETENV_INT("%d", b, "SECONDARY", p->cf->secondary);
+  SETENV_INT("%d", b, "ADD_PATH", p->cf->add_path);
+
+  if (p->cf->c.dsc != NULL)
+    {
+      setenv ("PROTO_DESC", p->cf->c.dsc, 1);
+    }
+
+  setenv ("PROTO_NAME", p->cf->c.name, 1);
   setenv ("TABLE_NAME", p->p.table->name, 1);
 
   SETENV_IPTOSTR("SOURCE_IP", &p->source_addr);
