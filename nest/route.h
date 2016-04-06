@@ -342,7 +342,6 @@ typedef struct rta {
   byte dest;				/* Route destination type (RTD_...) */
   byte flags;				/* Route flags (RTF_...), now unused */
   byte aflags;				/* Attribute cache flags (RTAF_...) */
-  byte latency;
   u16 hash_key;				/* Hash over important fields */
   u32 igp_metric;			/* IGP metric to next hop (for iBGP routes) */
   ip_addr gw;				/* Next hop */
