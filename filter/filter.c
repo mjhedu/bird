@@ -802,6 +802,8 @@ interpret(struct f_inst *what)
       case SA_DEST:	res.val.i = rta->dest; break;
       case SA_IFNAME:	res.val.s = rta->iface ? rta->iface->name : ""; break;
       case SA_IFINDEX:	res.val.i = rta->iface ? rta->iface->index : 0; break;
+      case SA_LATENCY:	res.val.i = (uint)rta->src->proto->cf->link_latency; break;
+
 
       default:
 	bug("Invalid static attribute access (%x)", res.type);
@@ -854,7 +856,10 @@ interpret(struct f_inst *what)
 	rta->nexthops = NULL;
 	rta->hostentry = NULL;
 	break;
-
+   /* case SA_LATENCY:  // Making this attr writable probably has no benefits
+	 rta->src->proto->cf->c_latency = v1.val.i;
+	break;
+   */
       default:
 	bug("Invalid static attribute access (%x)", res.type);
       }

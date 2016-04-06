@@ -287,6 +287,8 @@ CF_KEYWORDS(FUNCTION, PRINT, PRINTN, UNSET, RETURN,
 	ROA_CHECK,
 	EMPTY,
 	FILTER, WHERE, EVAL)
+	
+CF_KEYWORDS(LINK_LATENCY, LINK_BANDWIDTH)
 
 %nonassoc THEN
 %nonassoc ELSE
@@ -717,6 +719,7 @@ static_attr:
  | DEST    { $$ = f_new_inst(); $$->aux = T_ENUM_RTD;   $$->a2.i = SA_DEST;	$$->a1.i = 1; }
  | IFNAME  { $$ = f_new_inst(); $$->aux = T_STRING;     $$->a2.i = SA_IFNAME; }
  | IFINDEX { $$ = f_new_inst(); $$->aux = T_INT;        $$->a2.i = SA_IFINDEX; }
+ | LINK_LATENCY { $$ = f_new_inst();  $$->aux = T_INT;  $$->a2.i = SA_LATENCY; }
  ;
 
 term:

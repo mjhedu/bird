@@ -22,7 +22,7 @@ CF_KEYWORDS(HOOK, AHOOK, ESTABLISHED, ENTER, INIT, DOWN,
 	LEAVE, CLOSE, IDLE, OPENCONFIRM, CHANGE, CONNECTED, CONFIGURE,
 	SHUTDOWN, GREST, CONN, INBOUND, OUTBOUND, FEED, TIMEOUT,
 	UPDATE, WITHDRAW, ROUTE, IMPORT, EXPORT)
-
+	
 CF_KEYWORDS(BGP, LOCAL, NEIGHBOR, AS, HOLD, TIME, CONNECT, RETRY,
 	KEEPALIVE, MULTIHOP, STARTUP, VIA, NEXT, HOP, SELF, DEFAULT,
 	PATH, METRIC, ERROR, START, DELAY, FORGET, WAIT, ENABLE,
@@ -61,6 +61,7 @@ bgp_proto_start: proto_start BGP {
      BGP_CFG->default_local_pref = 100;
      BGP_CFG->gr_mode = BGP_GR_AWARE;
      BGP_CFG->gr_time = 120;
+     BGP_CFG->c.link_latency = 1;
  }
  ;
 
@@ -106,6 +107,7 @@ bgp_proto:
  | bgp_proto DEFAULT BGP_MED expr ';' { BGP_CFG->default_med = $4; }
  | bgp_proto DEFAULT BGP_LOCAL_PREF expr ';' { BGP_CFG->default_local_pref = $4; }
  | bgp_proto SOURCE ADDRESS ipa ';' { BGP_CFG->source_addr = $4; }
+ | bgp_proto LINK LATENCY expr ';' { BGP_CFG->c.link_latency = $4; }
  | bgp_proto START DELAY TIME expr ';' { BGP_CFG->connect_delay_time = $5; log(L_WARN "%s: Start delay time option is deprecated, use connect delay time", this_proto->name); }
  | bgp_proto CONNECT DELAY TIME expr ';' { BGP_CFG->connect_delay_time = $5; }
  | bgp_proto CONNECT RETRY TIME expr ';' { BGP_CFG->connect_retry_time = $5; }
