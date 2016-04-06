@@ -133,7 +133,6 @@ bgp_build_hook_envvars (u32 index, void *P)
   SETENV_INT("%hhu", b, "IS_INTERNAL", p->is_internal);
   SETENV_INT("%u", b, "LOCAL_ID", p->local_id);
 
-
   SETENV_INT("%hu", b, "REMOTE_PORT", p->cf->remote_port);
   SETENV_INT("%u", b, "REMOTE_AS", p->cf->remote_as);
   SETENV_IPTOSTR("REMOTE_IP", &p->cf->remote_ip);
@@ -215,10 +214,17 @@ bgp_handle_invalid_in_conn (u32 index, void *data)
   SETENV_INT("%hu", b, "SOURCE_PORT", (unsigned short )sk->sport);
 }
 
+struct bgp_filter_build_params
+{
+  struct rte *e;
+  struct bgp_proto *p;
+};
+
 static void
 bgp_build_route_envvars (u32 index, void *RT)
 {
-  struct rte *e = (struct rte*) RT;
+  struct bgp_filter_build_params *par = (struct bgp_filter_build_params *) RT;
+  struct rte *e = par->e;
 
   char b[MAX_ENV_SIZE];
 
@@ -248,8 +254,9 @@ bgp_build_route_envvars (u32 index, void *RT)
 int
 bgp_hook_filter (u32 index, void *P, void *RT)
 {
-  struct bgp_proto *p = (struct bgp_proto *) P;
+  struct bgp_filter_build_params p =
+    { .p = (struct bgp_proto *) P, .e = (struct rte*) RT };
 
-  return bgp_hook_run (index, p, bgp_build_route_envvars, RT);
+  return bgp_hook_run (index, P, bgp_build_route_envvars, &p);
 }
 
