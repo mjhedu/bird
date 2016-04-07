@@ -217,7 +217,6 @@ hook_setenv_conf_generic (void *c)
     }
 }
 
-#define IS_PROTO_BGP(p)	(p->proto->name[0] == 0x42 && p->proto->name[1] == 0x47)
 
 int
 filter_hook_dispatcher (u32 index, void *P, void *RT)

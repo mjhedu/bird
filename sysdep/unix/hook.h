@@ -103,4 +103,7 @@ generic_hook_filter (u32 index, void *P, void *RT);
 
 generic_hook_filter filter_hook_dispatcher, bgp_hook_filter;
 
+
+#define IS_PROTO_BGP(p)	(p->proto->name[0] == 0x42 && p->proto->name[1] == 0x47)
+
 #endif /* SYSDEP_UNIX_HOOK_H_ */

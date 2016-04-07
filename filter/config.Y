@@ -714,7 +714,7 @@ static_attr:
  | NET     { $$ = f_new_inst(); $$->aux = T_PREFIX;     $$->a2.i = SA_NET; }
  | PROTO   { $$ = f_new_inst(); $$->aux = T_STRING;     $$->a2.i = SA_PROTO; }
  | SOURCE  { $$ = f_new_inst(); $$->aux = T_ENUM_RTS;   $$->a2.i = SA_SOURCE; }
- | SCOPE   { $$ = f_new_inst(); $$->aux = T_ENUM_SCOPE; $$->a2.i = SA_SCOPE;	$$->a1.i = 1; }
+ | SCOPE   { $$ = f_new_inst(); $$->aux = T_ENUM_SCOPE; $$->a2.i = SA_SCOPE; $$->a1.i = 1; }
  | CAST    { $$ = f_new_inst(); $$->aux = T_ENUM_RTC;   $$->a2.i = SA_CAST; }
  | DEST    { $$ = f_new_inst(); $$->aux = T_ENUM_RTD;   $$->a2.i = SA_DEST;	$$->a1.i = 1; }
  | IFNAME  { $$ = f_new_inst(); $$->aux = T_STRING;     $$->a2.i = SA_IFNAME; }

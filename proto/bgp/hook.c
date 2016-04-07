@@ -3,10 +3,13 @@
  *
  */
 
-#include "hook.h"
 #include "bgp.h"
+#include "filter/filter.h"
 #include "lib/socket.h"
 #include "nest/attrs.h"
+
+
+#include "hook.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -260,3 +263,25 @@ bgp_hook_filter (u32 index, void *P, void *RT)
   return bgp_hook_run (index, P, bgp_build_route_envvars, &p);
 }
 
+void
+bgp_hook_proc_sa (int w, struct f_val *res, struct rta *rta)
+{
+  struct proto *P = rta->src->proto;
+  if (IS_PROTO_BGP (P))
+    {
+      struct bgp_proto *p = (struct bgp_proto *) P;
+
+      if (w == 1)
+	{
+	  res->val.i = (uint) p->cf->remote_as;
+	}
+      else if (w == 2)
+	{
+	  res->val.i = (uint) p->cf->local_as;
+	}
+    }
+  else
+    {
+      res->val.i = 0;
+    }
+}
