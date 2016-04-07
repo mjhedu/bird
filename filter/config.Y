@@ -720,6 +720,7 @@ static_attr:
  | IFNAME  { $$ = f_new_inst(); $$->aux = T_STRING;     $$->a2.i = SA_IFNAME; }
  | IFINDEX { $$ = f_new_inst(); $$->aux = T_INT;        $$->a2.i = SA_IFINDEX; }
  | LINK_LATENCY { $$ = f_new_inst();  $$->aux = T_INT;  $$->a2.i = SA_LATENCY; }
+ | LINK_BANDWIDTH { $$ = f_new_inst();  $$->aux = T_INT;  $$->a2.i = SA_BANDWIDTH; }
  ;
 
 term:

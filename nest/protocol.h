@@ -102,6 +102,7 @@ struct proto_config {
   struct proto_limit *out_limit;	/* Limit for exporting routes to protocol */
 
   byte link_latency;
+  byte link_bandwidth;
 
   /* Check proto_reconfigure() and proto_copy_config() after changing struct proto_config */
 

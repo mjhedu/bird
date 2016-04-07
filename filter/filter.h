@@ -186,8 +186,9 @@ void val_format(struct f_val v, buffer *buf);
 #define SA_IFNAME  	 9
 #define SA_IFINDEX    	10
 #define SA_LATENCY    	11
-#define SA_REMOTE_AS   	12
-#define SA_LOCAL_AS    	13
+#define SA_BANDWIDTH	12
+#define SA_REMOTE_AS   	13
+#define SA_LOCAL_AS    	14
 
 
 struct f_tree {
