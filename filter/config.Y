@@ -288,7 +288,7 @@ CF_KEYWORDS(FUNCTION, PRINT, PRINTN, UNSET, RETURN,
 	EMPTY,
 	FILTER, WHERE, EVAL)
 	
-CF_KEYWORDS(LINK_LATENCY, LINK_BANDWIDTH)
+CF_KEYWORDS(LINK_LATENCY, LINK_BANDWIDTH, LINK_SECURITY)
 
 %nonassoc THEN
 %nonassoc ELSE
@@ -721,6 +721,7 @@ static_attr:
  | IFINDEX { $$ = f_new_inst(); $$->aux = T_INT;        $$->a2.i = SA_IFINDEX; }
  | LINK_LATENCY { $$ = f_new_inst();  $$->aux = T_INT;  $$->a2.i = SA_LATENCY; }
  | LINK_BANDWIDTH { $$ = f_new_inst();  $$->aux = T_INT;  $$->a2.i = SA_BANDWIDTH; }
+ | LINK_SECURITY { $$ = f_new_inst();  $$->aux = T_INT;  $$->a2.i = SA_SECURITY; }
  ;
 
 term:

@@ -103,6 +103,7 @@ struct proto_config {
 
   byte link_latency;
   byte link_bandwidth;
+  byte link_security;
 
   /* Check proto_reconfigure() and proto_copy_config() after changing struct proto_config */
 

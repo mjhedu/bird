@@ -806,6 +806,7 @@ interpret(struct f_inst *what)
       case SA_IFINDEX:	res.val.i = rta->iface ? rta->iface->index : 0; break;
       case SA_LATENCY:	res.val.i = (uint)rta->src->proto->cf->link_latency; break;
       case SA_BANDWIDTH: res.val.i = (uint)rta->src->proto->cf->link_bandwidth; break;
+      case SA_SECURITY: res.val.i = (uint)rta->src->proto->cf->link_security; break;
       case SA_REMOTE_AS: bgp_hook_proc_sa(1, &res, rta ); break;
       case SA_LOCAL_AS: bgp_hook_proc_sa(2, &res, rta ); break;
 

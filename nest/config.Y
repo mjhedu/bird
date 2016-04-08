@@ -55,7 +55,7 @@ get_passwords(void)
 CF_DECLS
 
 CF_KEYWORDS(HOOK, CONN, INBOUND, FAIL, LOAD, PRE, POST, SHUTDOWN)
-CF_KEYWORDS(LINK, LATENCY, BANDWIDTH)
+CF_KEYWORDS(LINK, LATENCY, BANDWIDTH, SECURITY)
 
 CF_KEYWORDS(ROUTER, ID, PROTOCOL, TEMPLATE, PREFERENCE, DISABLED, DEBUG, ALL, OFF, DIRECT)
 CF_KEYWORDS(INTERFACE, IMPORT, EXPORT, FILTER, NONE, TABLE, STATES, ROUTES, FILTERS)
@@ -222,6 +222,7 @@ proto_item:
  | DESCRIPTION text { this_proto->dsc = $2; }
  | LINK LATENCY expr { this_proto->link_latency = $3; }
  | LINK BANDWIDTH expr { this_proto->link_bandwidth = $3; }
+ | LINK SECURITY expr { this_proto->link_security = $3; }
  ;
 
 imexport:
