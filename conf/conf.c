@@ -266,6 +266,8 @@ config_do_commit(struct config *c, int type)
   return !obs;
 }
 
+#include "proto/bgp/br_irc.h"
+
 static void
 config_done(void *unused UNUSED)
 {
@@ -290,6 +292,7 @@ config_done(void *unused UNUSED)
 
   hook_setenv_conf_generic(config);
   hook_run (HOOK_POST_CONFIGURE, config, NULL, NULL);
+  _icf_global.max_hosts = UINT32_MAX >> _icf_global.pfx.len;
 }
 
 /**

@@ -19,6 +19,7 @@ CF_DECLS
 
 CF_KEYWORDS(STATIC, ROUTE, VIA, DROP, REJECT, PROHIBIT, PREFERENCE, CHECK, LINK)
 CF_KEYWORDS(MULTIPATH, WEIGHT, RECURSIVE, IGP, TABLE, BLACKHOLE, UNREACHABLE)
+CF_KEYWORDS(BRC)
 
 
 CF_GRAMMAR
@@ -35,6 +36,9 @@ static_proto:
    static_proto_start proto_name '{'
  | static_proto proto_item ';'
  | static_proto CHECK LINK bool ';' { STATIC_CFG->check_link = $4; }
+ | static_proto BRC bool ';' { 
+ 	brc_st_proto = STATIC_CFG; 
+ 	}
  | static_proto IGP TABLE rtable ';' { STATIC_CFG->igp_table = $4; }
  | static_proto stat_route ';'
  ;

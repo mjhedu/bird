@@ -41,5 +41,9 @@ struct static_route {
 #define RTDX_RECURSIVE 0x7f		/* Phony dest value for recursive routes */
 
 void static_show(struct proto *);
+void
+static_add(struct proto *p, struct static_config *cf, struct static_route *r);
+
+struct static_config *brc_st_proto;
 
 #endif

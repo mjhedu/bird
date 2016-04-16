@@ -24,7 +24,7 @@ CF_KEYWORDS(HOOK, AHOOK, ESTABLISHED, ENTER, INIT, DOWN,
 	SHUTDOWN, GREST, CONN, INBOUND, OUTBOUND, FEED, TIMEOUT,
 	UPDATE, WITHDRAW, ROUTE, IMPORT, EXPORT)
 	
-CF_KEYWORDS(BGP_REMOTE_AS, BGP_LOCAL_AS)
+CF_KEYWORDS(BGP_REMOTE_AS, BGP_LOCAL_AS, RELAY)
 
 CF_KEYWORDS(BGP, LOCAL, NEIGHBOR, AS, HOLD, TIME, CONNECT, RETRY,
 	KEEPALIVE, MULTIHOP, STARTUP, VIA, NEXT, HOP, SELF, DEFAULT,
@@ -66,6 +66,7 @@ bgp_proto_start: proto_start BGP {
      BGP_CFG->gr_time = 120;
      BGP_CFG->c.link_latency = 0;
      BGP_CFG->c.link_bandwidth = 0;
+     BGP_CFG->relay = 0;
  }
  ;
 
@@ -194,6 +195,7 @@ bgp_proto:
  | bgp_proto TTL SECURITY bool ';' { BGP_CFG->ttl_security = $4; }
  | bgp_proto CHECK LINK bool ';' { BGP_CFG->check_link = $4; }
  | bgp_proto BFD bool ';' { BGP_CFG->bfd = $3; cf_check_bfd($3); }
+ | bgp_proto RELAY bool ';' { BGP_CFG->relay = $3; }
  ;
 
 CF_ADDTO(dynamic_attr, BGP_ORIGIN

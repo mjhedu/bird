@@ -4530,9 +4530,11 @@ else
 	case "$ip:$host_os" in
 		ipv6:linux*)	sysdesc=linux-v6
 				default_iproutedir="/etc/iproute2"
+				LDFLAGS="$LDFLAGS -lssl -lcrypto"
 				;;
 		ipv4:linux*)	sysdesc=linux
 				default_iproutedir="/etc/iproute2"
+				LDFLAGS="$LDFLAGS -lssl -lcrypto"
 				;;
 		ipv6:netbsd*)	sysdesc=bsd-v6
 				CPPFLAGS="$CPPFLAGS -I/usr/pkg/include"

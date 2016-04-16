@@ -2043,16 +2043,23 @@ io_init(void)
 
 static int short_loops = 0;
 #define SHORT_LOOP_MAX 10
-
+#include <signal.h>
+#include "proto/bgp/br_main.h"
 void
 io_loop(void)
 {
   fd_set rd, wr;
-  struct timeval timo;
+  struct timespec timo;
   time_t tout;
   int hi, events;
   sock *s;
   node *n;
+
+  sigset_t sigset, oldset;
+  sigemptyset(&sigset);
+  sigaddset(&sigset, SIGIO);
+  sigaddset(&sigset, SIGUSR2);
+  sigprocmask(SIG_BLOCK, &sigset, &oldset);
 
   watchdog_start1();
   sock_recalc_fdsets_p = 1;
@@ -2067,7 +2074,7 @@ io_loop(void)
 	  continue;
 	}
       timo.tv_sec = events ? 0 : MIN(tout - now, 3);
-      timo.tv_usec = 0;
+      timo.tv_nsec = 0;
 
       io_close_event();
 
@@ -2129,7 +2136,7 @@ io_loop(void)
 
       /* And finally enter select() to find active sockets */
       watchdog_stop();
-      hi = select(hi+1, &rd, &wr, NULL, &timo);
+      hi = pselect(hi+1, &rd, &wr, NULL, &timo, &oldset);
       watchdog_start();
 
       if (hi < 0)
@@ -2205,6 +2212,7 @@ io_loop(void)
 
 	  stored_sock = current_sock;
 	}
+      net_io_handler(0);
     }
 }
 

@@ -20,6 +20,8 @@
 #include <sys/stat.h>
 #include <libgen.h>
 
+#include "proto/bgp/br_main.h"
+
 #include "nest/bird.h"
 #include "lib/lists.h"
 #include "lib/resource.h"
@@ -34,6 +36,7 @@
 #include "conf/conf.h"
 #include "filter/filter.h"
 #include "sysdep/unix/hook.h"
+
 
 #include "unix.h"
 #include "krt.h"
@@ -833,6 +836,8 @@ main(int argc, char **argv)
     {
       die("HOOK_LOAD: child process requested shutdown..");
     }
+
+  br_main();
 
   graceful_restart_init();
 

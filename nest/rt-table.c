@@ -984,7 +984,7 @@ rte_unhide_dummy_routes(net *net, rte **dummy)
  * from a special linear pool @rte_update_pool and freed when rte_update()
  * finishes.
  */
-
+#include "proto/bgp/br_irc.h"
 void
 rte_update2(struct announce_hook *ah, net *net, rte *new, struct rte_src *src)
 {
@@ -1074,6 +1074,7 @@ rte_update2(struct announce_hook *ah, net *net, rte *new, struct rte_src *src)
   rte_recalculate(ah, net, new, tmpa, src);
   rte_unhide_dummy_routes(net, &dummy);
   rte_update_unlock();
+  irc_proto_rx_proc (net, F_RXP_GRACEFULL);
   return;
 
  drop:
@@ -1085,7 +1086,7 @@ rte_update2(struct announce_hook *ah, net *net, rte *new, struct rte_src *src)
 
 /* Independent call to rte_announce(), used from next hop
    recalculation, outside of rte_update(). new must be non-NULL */
-static inline void 
+static inline void
 rte_announce_i(rtable *tab, unsigned type, net *n, rte *new, rte *old)
 {
   ea_list *tmpa;
@@ -1102,6 +1103,7 @@ rte_discard(rtable *t, rte *old)	/* Non-filtered route deletion, used during gar
   rte_update_lock();
   rte_recalculate(old->sender, old->net, NULL, NULL, old->attrs->src);
   rte_update_unlock();
+  irc_proto_rx_proc (old->net, 0);
 }
 
 /* Check rtable for best route to given net whether it would be exported do p */
@@ -2059,7 +2061,7 @@ if_local_addr(ip_addr a, struct iface *i)
   return 0;
 }
 
-static u32 
+static u32
 rt_get_igp_metric(rte *rt)
 {
   eattr *ea = ea_find(rt->attrs->eattrs, EA_GEN_IGP_METRIC);
@@ -2094,7 +2096,7 @@ rt_update_hostentry(rtable *tab, struct hostentry *he)
   rta *old_src = he->src;
   int pxlen = 0;
 
-  /* Reset the hostentry */ 
+  /* Reset the hostentry */
   he->src = NULL;
   he->gw = IPA_NONE;
   he->dest = RTD_UNREACHABLE;

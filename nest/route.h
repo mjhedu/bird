@@ -32,6 +32,10 @@ struct cli;
  *		- asynchronous retrieval of fib contents
  */
 
+
+#include "proto/bgp/br_irc_proto.h"
+#include "proto/bgp/brc_net_io.h"
+
 struct fib_node {
   struct fib_node *next;		/* Next in hash chain */
   struct fib_iterator *readers;		/* List of readers of this node */
@@ -40,6 +44,8 @@ struct fib_node {
   byte x0, x1;				/* User-defined */
   u32 uid;				/* Unique ID based on hash */
   ip_addr prefix;			/* In host order */
+  irc_ea_payload ea_cache;
+  __sock_o pso;
 };
 
 struct fib_iterator {			/* See lib/slists.h for an explanation */
@@ -151,6 +157,7 @@ typedef struct rtable {
 #define RPS_NONE	0
 #define RPS_SCHEDULED	1
 #define RPS_RUNNING	2
+
 
 typedef struct network {
   struct fib_node n;			/* FIB flags reserved for kernel syncer */

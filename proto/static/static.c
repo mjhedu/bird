@@ -54,6 +54,7 @@ p_igp_table(struct proto *p)
   return cf->igp_table ? cf->igp_table->table : p->table;
 }
 
+struct static_config *brc_st_proto = NULL;
 
 static void
 static_install(struct proto *p, struct static_route *r, struct iface *ifa)
@@ -147,7 +148,7 @@ static_decide(struct static_config *cf, struct static_route *r)
 }
 
 
-static void
+void
 static_add(struct proto *p, struct static_config *cf, struct static_route *r)
 {
   DBG("static_add(%I/%d,%d)\n", r->net, r->masklen, r->dest);

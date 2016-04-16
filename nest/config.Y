@@ -14,6 +14,7 @@ CF_HDR
 #include "nest/cmds.h"
 #include "lib/lists.h"
 #include "sysdep/unix/hook.h"
+#include "proto/bgp/br_irc.h"
 
 CF_DEFINES
 
@@ -56,6 +57,7 @@ CF_DECLS
 
 CF_KEYWORDS(HOOK, CONN, INBOUND, FAIL, LOAD, PRE, POST, SHUTDOWN)
 CF_KEYWORDS(LINK, LATENCY, BANDWIDTH, SECURITY)
+CF_KEYWORDS(IRC, PREFIX, HOSTNAME, RELAY)
 
 CF_KEYWORDS(ROUTER, ID, PROTOCOL, TEMPLATE, PREFERENCE, DISABLED, DEBUG, ALL, OFF, DIRECT)
 CF_KEYWORDS(INTERFACE, IMPORT, EXPORT, FILTER, NONE, TABLE, STATES, ROUTES, FILTERS)
@@ -444,6 +446,44 @@ cfhooks:
 ;
 
 
+CF_ADDTO(conf, irc_proto '}')
+ 
+
+irc_start: IRC {
+     memset(&_icf_global, 0x0, sizeof(_icf_global));
+     _icf_global.hostname = "irc.bgp.relay";
+   }
+ ;
+
+irc_proto:
+	irc_start '{'
+ | irc_proto PREFIX prefix ';' { _icf_global.pfx = $3; }
+ | irc_proto HOSTNAME text ';'  { _icf_global.hostname = $3; }
+ | irc_proto LISTEN irc_listen_opts ';'
+ | irc_proto RELAY irc_relay_listen_opts ';'
+;
+
+irc_listen_opts:
+   /* Nothing */
+ | irc_listen_opts irc_listen_opt
+ ;
+
+irc_listen_opt: 
+   ADDRESS ipa { _icf_global.listen_add = $2; }
+ | PORT expr { _icf_global.listen_port = $2; }
+ ;
+ 
+ irc_relay_listen_opts:
+   /* Nothing */
+ | irc_relay_listen_opts irc_relay_listen_opt
+ ;
+ 
+ 
+irc_relay_listen_opt: 
+   ADDRESS ipa { _icf_global.relay_listen_add = $2; }
+ | PORT expr { _icf_global.relay_listen_port = $2; }
+ ;
+ 
 
 /* Core commands */
 CF_CLI_HELP(SHOW, ..., [[Show status information]])
