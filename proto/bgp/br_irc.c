@@ -1902,8 +1902,7 @@ irc_relay_message (__sock_o origin, int scope, char *code, char *target,
 	  log (L_DEBUG "irc_relay_message: [%d]: %I sending %u bytes (local)",
 	       origin->sock, *ha, pkt->head.content_length);
 
-	  return net_push_to_sendq (n->n.pso, pkt, pkt->head.content_length,
-	  NET_PUSH_SENDQ_ASSUME_PTR);
+	  irc_deliver_relayed_msg (n->n.pso, pkt);
 	}
       else if (n->routes->attrs->source == RTS_BGP) // send out
 	{
