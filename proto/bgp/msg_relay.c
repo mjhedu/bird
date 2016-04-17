@@ -49,9 +49,39 @@ dsp_lookup (struct mrl_dspobj *r, uint8_t code)
     }
 }
 
+static void
+net_baseline_decrease_ttl (mrl_dpkt *pkt)
+{
+  if (pkt->ttl)
+    {
+      pkt->ttl--;
+    }
+}
+
+struct rte *
+mrl_baseline_lookup_best_path (net *n)
+{
+  struct bgp_proto *p;
+  struct rte *routes = n->routes;
+
+  while (routes)
+    {
+      p = (struct bgp_proto *) routes->attrs->src->proto;
+
+      if (p && p->rlink_sock) // must have a relay connection
+	{
+	  break;
+	}
+      routes = routes->next;
+    }
+
+  return routes;
+}
+
 int
 net_baseline_relay_dispatcher (__sock_o pso, mrl_dpkt *pkt)
 {
+  net_baseline_decrease_ttl (pkt);
 
   net *n = net_find (brc_st_proto->c.proto->table, pkt->dest.addr,
 		     pkt->dest.len);
@@ -61,9 +91,10 @@ net_baseline_relay_dispatcher (__sock_o pso, mrl_dpkt *pkt)
       return 1; // unreachable
     }
 
-  if ( !n->routes->attrs) {
+  if (!n->routes->attrs)
+    {
       return 1; // ??
-  }
+    }
 
   if (n->routes->attrs->source == RTS_STATIC) // deliver locally
     {
@@ -85,27 +116,19 @@ net_baseline_relay_dispatcher (__sock_o pso, mrl_dpkt *pkt)
     }
   else if (n->routes->attrs->source == RTS_BGP) // forward
     {
-      struct bgp_proto *p;
+      struct rte *routes = mrl_baseline_lookup_best_path (n);
 
-      struct rte *routes = n->routes;
-
-      while (routes)
+      if (routes)
 	{
-	  p = (struct bgp_proto *) n->routes->attrs->src->proto;
-	  if (p && p->rlink_sock)
-	    {
-	      break;
-	    }
-	  routes = routes->next;
-	}
 
-      if (routes && p)
-	{
+	  struct bgp_proto *p = (struct bgp_proto *) routes->attrs->src->proto;
+
 	  log (
 	      L_DEBUG "net_baseline_relay_dispatcher: [%d->%d]: forwarding from %I to %I",
 	      pso->sock, p->rlink_sock->sock, pkt->source.addr, pkt->dest.addr);
+
 	  return net_send_direct (p->rlink_sock, (void*) pkt,
-				    pkt->head.content_length);
+				  pkt->head.content_length);
 	}
       else
 	{

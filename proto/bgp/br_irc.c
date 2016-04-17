@@ -1899,28 +1899,17 @@ irc_relay_message (__sock_o origin, int scope, char *code, char *target,
 
       if (n->routes->attrs->source == RTS_STATIC) // deliver locally
 	{
-	  log (L_DEBUG "irc_relay_message: [%d]: %I sending %u bytes (local)",
-	       origin->sock, *ha, pkt->head.content_length);
+	  /*log (L_DEBUG "irc_relay_message: [%d]: %I sending %u bytes (local)",
+	   origin->sock, *ha, pkt->head.content_length);*/
 
 	  irc_deliver_relayed_msg (n->n.pso, pkt);
 	}
       else if (n->routes->attrs->source == RTS_BGP) // send out
 	{
-	  struct bgp_proto *p;
 
-	  struct rte *routes = n->routes;
+	  struct rte *routes = mrl_baseline_lookup_best_path (n);
 
-	  while (routes)
-	    {
-	      p = (struct bgp_proto *) n->routes->attrs->src->proto;
-	      if (p && p->rlink_sock)
-		{
-		  break;
-		}
-	      routes = routes->next;
-	    }
-
-	  if (!routes || !p)
+	  if (!routes)
 	    {
 	      log (
 	      L_ERR "irc_relay_message: [%d]: %I unreachable (upstream down)",
@@ -1928,6 +1917,8 @@ irc_relay_message (__sock_o origin, int scope, char *code, char *target,
 	      free (pkt);
 	      return 1;
 	    }
+
+	  struct bgp_proto *p = (struct bgp_proto *)routes->attrs->src->proto;
 
 	  log (L_DEBUG "irc_relay_message: [%d]: %I sending %u bytes (global)",
 	       origin->sock, *ha, pkt->head.content_length);

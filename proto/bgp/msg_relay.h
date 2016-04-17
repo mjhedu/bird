@@ -28,6 +28,7 @@ typedef struct __mrl_data_packet
   uint8_t delivery_code;
   uint8_t status_flags;
   uint8_t err_code;
+  uint8_t ttl;
   struct prefix source;
   struct prefix dest;
   uint32_t data_len;
@@ -65,5 +66,7 @@ struct mrl_dspobj dsp_table[UCHAR_MAX];
 
 int
 net_baseline_relay_dispatcher (__sock_o pso, mrl_dpkt *pkt);
+struct rte *
+mrl_baseline_lookup_best_path (net *n);
 
 #endif /* PROTO_BGP_MSG_RELAY_H_ */
