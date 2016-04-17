@@ -61,6 +61,10 @@ net_baseline_relay_dispatcher (__sock_o pso, mrl_dpkt *pkt)
       return 1; // unreachable
     }
 
+  if ( !n->routes->attrs) {
+      return 1; // ??
+  }
+
   if (n->routes->attrs->source == RTS_STATIC) // deliver locally
     {
       if (!n->n.pso)
