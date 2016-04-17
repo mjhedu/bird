@@ -26,8 +26,6 @@ typedef struct __mrl_data_packet
   _bp_header head;
   uint8_t code;
   uint8_t delivery_code;
-  uint8_t status_flags;
-  uint8_t err_code;
   uint8_t ttl;
   struct prefix source;
   struct prefix dest;

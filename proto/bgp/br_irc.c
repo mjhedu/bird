@@ -1864,6 +1864,8 @@ irc_relay_message (__sock_o origin, int scope, char *code, char *target,
   pkt->head.prot_code = PROT_CODE_RELAY;
   pkt->delivery_code = DSP_CODE_IRC_MESSAGE;
 
+  int ret = 0;
+
   if (target[0] == 0x23)
     {
 
@@ -1877,8 +1879,8 @@ irc_relay_message (__sock_o origin, int scope, char *code, char *target,
 	{
 	  log (L_ERR "irc_relay_message: [%d]: %s: unreachable (intmap)",
 	       origin->sock, target);
-	  free (pkt);
-	  return 1;
+	  ret = 1;
+	  goto cleanup;
 	}
 
       pkt->source = uirc->net;
@@ -1891,10 +1893,10 @@ irc_relay_message (__sock_o origin, int scope, char *code, char *target,
 
       if (!n || !n->routes || !n->routes->attrs || !n->routes->attrs->src)
 	{
-	  log (L_ERR "irc_relay_message: [%d]: %I unreachable (no path)",
-	       origin->sock, *ha);
-	  free (pkt);
-	  return 1;
+	  log (L_ERR "irc_relay_message: [%d]: %I/%d unreachable (no path)",
+	       origin->sock, pkt->dest.addr, pkt->dest.len);
+	  ret = 1;
+	  goto cleanup;
 	}
 
       if (n->routes->attrs->source == RTS_STATIC) // deliver locally
@@ -1912,16 +1914,20 @@ irc_relay_message (__sock_o origin, int scope, char *code, char *target,
 	  if (!routes)
 	    {
 	      log (
-	      L_ERR "irc_relay_message: [%d]: %I unreachable (upstream down)",
-		   origin->sock, *ha);
-	      free (pkt);
-	      return 1;
+		  L_ERR "irc_relay_message: [%d]: %I/%d unreachable (upstream down)",
+		  origin->sock, pkt->dest.addr, pkt->dest.len);
+	      ret = 1;
+	      goto cleanup;
 	    }
 
-	  struct bgp_proto *p = (struct bgp_proto *)routes->attrs->src->proto;
+	  struct bgp_proto *p = (struct bgp_proto *) routes->attrs->src->proto;
 
-	  log (L_DEBUG "irc_relay_message: [%d]: %I sending %u bytes (global)",
-	       origin->sock, *ha, pkt->head.content_length);
+	  log (
+	  L_DEBUG "irc_relay_message: [%d]: %I/%d sending %u bytes (global)",
+	       origin->sock, pkt->dest.addr, pkt->dest.len,
+	       pkt->head.content_length);
+
+	  pkt->ttl = 100;
 
 	  return net_push_to_sendq (p->rlink_sock, pkt,
 				    pkt->head.content_length,
@@ -1930,15 +1936,18 @@ irc_relay_message (__sock_o origin, int scope, char *code, char *target,
       else
 	{
 	  log (
-	      L_ERR "irc_relay_message: unknown protocol detected, check your configuration");
+	      L_ERR "irc_relay_message: unknown source protocol on route %I/%d, check your configuration",
+	      pkt->dest.addr, pkt->dest.len);
 	  abort ();
 	}
 
     }
 
+  cleanup: ;
+
   free (pkt);
 
-  return 0;
+  return ret;
 }
 
 void

@@ -83,6 +83,15 @@ net_baseline_relay_dispatcher (__sock_o pso, mrl_dpkt *pkt)
 {
   net_baseline_decrease_ttl (pkt);
 
+  if (!pkt->ttl)
+    {
+      log (
+	  L_DEBUG "net_baseline_relay_dispatcher: [%d]: TTL exceeded on packet from %I",
+	  pso->sock, pkt->dest);
+
+      return 1; // TTL exceeded
+    }
+
   net *n = net_find (brc_st_proto->c.proto->table, pkt->dest.addr,
 		     pkt->dest.len);
 
@@ -100,7 +109,10 @@ net_baseline_relay_dispatcher (__sock_o pso, mrl_dpkt *pkt)
     {
       if (!n->n.pso)
 	{
-	  return 1;
+	  log (
+	      L_ERR "net_baseline_relay_dispatcher: [%d]: fixme: local path with no socket",
+	      pso->sock);
+	  abort ();
 	}
 
       struct mrl_dspobj *dso = dsp_lookup (dsp_table, pkt->delivery_code);
