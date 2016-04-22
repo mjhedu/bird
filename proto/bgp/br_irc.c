@@ -2229,7 +2229,7 @@ irc_proto_proc_update (net *n, uint32_t flags)
 
   if (n->n.pxlen != 32)
     {
-      log (L_FATAL"irc_proto_proc_update: nonstandard pxlen: $I/%u",
+      log (L_FATAL"irc_proto_proc_update: nonstandard pxlen: %I/%u",
 	   n->n.prefix, n->n.pxlen);
       return 0;
     }
