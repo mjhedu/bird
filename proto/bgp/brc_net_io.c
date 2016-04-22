@@ -1059,7 +1059,7 @@ net_send_direct (__sock_o pso, const void *data, size_t size)
   if (0 != (ret = pso->send0 (pso, (void*) data, size)))
     {
       log (L_ERR
-      "[%d] [%d %d]: net_send_direct: send data failed, payload size: %d\n",
+      "[%d] [%d %d]: net_send_direct: send data failed, payload size: %d",
 	   pso->sock, ret, pso->s_errno, size);
       pso->flags |= F_OPSOCK_TERM;
       return -1;
@@ -1892,7 +1892,7 @@ net_prep_acsock (pmda base, pmda threadr, __sock_o spso, int fd,
     {
       pso->rcv_cb = spso->rcv0;
 
-      pso->send0 = (_p_ssend) net_ssend;
+      pso->send0 = (_p_ssend) net_ssend_b;
 
     }
 
