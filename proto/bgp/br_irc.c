@@ -759,7 +759,7 @@ irc_proto_cache_gch (ip_addr *prefix, char *name, uint32_t flags)
 
   if (flags & F_IRC_CACHE_UPDATE)
     {
-      gtable_t *item = ht_get (server_ctx.map_chan_to_ipas.ht, name, chlen);
+      gtable_t *item = ht_get (server_ctx.map_chan_to_ipas.ht, (unsigned char*) name, chlen);
 
       if (!item)
 	{
@@ -936,12 +936,12 @@ irc_join_chan (__sock_o pso, char *chan)
   lw_g->locks++;
   irc_ctx_add_channel (pic, &uirc->chans, chan, clen);
 
-  snprintf (av->name, MAX_CH_NAME_LEN, "%s", chan);
 
   irc_proto_cache_gch (&bbr->n->n.prefix, chan, F_IRC_CACHE_UPDATE);
 
   // propagate globally
 
+  snprintf (av->name, MAX_CH_NAME_LEN, "%s", chan);
   memcpy (&bbr->n->n.ea_cache, ipl, sizeof(irc_ea_payload));
   br_trigger_update (brc_st_proto->c.proto, bbr->n);
 
@@ -2326,44 +2326,45 @@ irc_proto_proc_update (net *n, uint32_t flags)
 	  irc_proto_cache_n (n, pl, F_IRC_CACHE_UPDATE);
 	}
 
-      for (i = 0; i < PAYLOAD_CR_SIZE; i++)
-	{
-	  char *name = cache->joined[i].name;
-
-	  if (!name[0])
-	    {
-	      continue;
-	    }
-
-	  for (j = 0; j < PAYLOAD_CR_SIZE; j++)
-	    {
-	      if (!strncmp (name, pl->joined[j].name, MAX_CH_NAME_LEN))
-		{
-		  goto end1;
-		}
-	    }
-
-	  //log (L_DEBUG "%s parted %s", pl->true_name, name);
-
-	  char c[MAX_CH_NAME_LEN + 2];
-	  snprintf (c, sizeof(c), "#%s", name);
-
-	  char *data = irc_assemble_response (hostname, "PART", c);
-
-	  irc_local_broadcast_to_chan (NULL, name, data, strlen (data));
-
-	  free (data);
-
-	  irc_proto_cache_gch (&n->n.prefix, name, F_IRC_CACHE_REMOVE);
-
-	  end1: ;
-
-	}
     }
   else
     {
       irc_proto_cache_n (n, pl, F_IRC_CACHE_REMOVE);
       irc_proto_cache_n (n, pl, F_IRC_CACHE_UPDATE);
+    }
+
+  for (i = 0; i < PAYLOAD_CR_SIZE; i++)
+    {
+      char *name = cache->joined[i].name;
+
+      if (!name[0])
+	{
+	  continue;
+	}
+
+      for (j = 0; j < PAYLOAD_CR_SIZE; j++)
+	{
+	  if (!strncmp (name, pl->joined[j].name, MAX_CH_NAME_LEN))
+	    {
+	      goto end1;
+	    }
+	}
+
+      //log (L_DEBUG "%s parted %s", pl->true_name, name);
+
+      char c[MAX_CH_NAME_LEN + 2];
+      snprintf (c, sizeof(c), "#%s", name);
+
+      char *data = irc_assemble_response (hostname, "PART", c);
+
+      irc_local_broadcast_to_chan (NULL, name, data, strlen (data));
+
+      free (data);
+
+      irc_proto_cache_gch (&n->n.prefix, name, F_IRC_CACHE_REMOVE);
+
+      end1: ;
+
     }
 
   for (i = 0; i < PAYLOAD_CR_SIZE; i++)
