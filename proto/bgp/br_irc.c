@@ -759,7 +759,8 @@ irc_proto_cache_gch (ip_addr *prefix, char *name, uint32_t flags)
 
   if (flags & F_IRC_CACHE_UPDATE)
     {
-      gtable_t *item = ht_get (server_ctx.map_chan_to_ipas.ht, (unsigned char*) name, chlen);
+      gtable_t *item = ht_get (server_ctx.map_chan_to_ipas.ht,
+			       (unsigned char*) name, chlen);
 
       if (!item)
 	{
@@ -935,7 +936,6 @@ irc_join_chan (__sock_o pso, char *chan)
   md_alloc (&pic->sockref, 0, 0, pso);
   lw_g->locks++;
   irc_ctx_add_channel (pic, &uirc->chans, chan, clen);
-
 
   irc_proto_cache_gch (&bbr->n->n.prefix, chan, F_IRC_CACHE_UPDATE);
 
@@ -2229,6 +2229,8 @@ irc_proto_proc_update (net *n, uint32_t flags)
 
   if (n->n.pxlen != 32)
     {
+      log (L_FATAL"irc_proto_proc_update: nonstandard pxlen: $I/%u",
+	   n->n.prefix, n->n.pxlen);
       return 0;
     }
 

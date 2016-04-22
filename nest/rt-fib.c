@@ -251,6 +251,7 @@ fib_get(struct fib *f, ip_addr *a, int len)
   e->next = *ee;
   e->uid = uid;
   memset(&e->ea_cache, 0x0, sizeof(e->ea_cache));
+  e->kflags = 0;
   *ee = e;
   e->readers = NULL;
   f->init(e);
