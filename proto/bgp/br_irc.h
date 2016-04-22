@@ -137,7 +137,7 @@ gtable_t _ntglobal;
 #define		DSP_CODE_IRC_MESSAGE	0x3C
 
 int
-irc_relay_message (__sock_o origin, int scope, char *code, char *target,
+irc_relay_message (__sock_o origin, char *code, char *target,
 		   char *message);
 
 #define M1_CSTRING(m,a) char _b[1024]; snprintf(_b, sizeof(_b), m, a);

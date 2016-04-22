@@ -603,71 +603,7 @@ net_conn_establish_async (__sock_o pso, __net_task task)
 
   int r = connect (pso->sock, pso->res->ai_addr, pso->res->ai_addrlen);
 
-  if (r == -1)
-    {
-      if (errno == EINPROGRESS)
-	{
-	  log (L_DEBUG "net_conn_establish_async: [%d]: connecting %I:%d..",
-	       pso->sock, *((ip_addr*) pso->ipr.ip), (int) pso->ipr.port);
-	}
-      else if ( errno == EALREADY)
-	{
-
-	}
-      else
-	{
-	  char b[1024];
-	  strerror_r (errno, b, sizeof(b));
-	  log (
-	  L_ERR "net_conn_establish_async: [%d]: %s: %I:%d ",
-	       pso->sock, b, *((ip_addr*) pso->ipr.ip), (int) pso->ipr.port);
-
-	  if ((pso->flags & F_OPSOCK_RETRY)
-	      && (!pso->policy.max_connect_retries
-		  || pso->counters.con_retries < pso->policy.max_connect_retries))
-	    {
-	      close (pso->sock);
-	      if ((pso->sock = socket (pso->res->ai_family,
-				       pso->res->ai_socktype,
-				       pso->res->ai_protocol)) == -1)
-		{
-		  pso->flags |= F_OPSOCK_TERM;
-		  return -4;
-		}
-
-	      if (fcntl (pso->sock, F_SETFL, O_NONBLOCK) == -1)
-		{
-		  pso->flags |= F_OPSOCK_TERM;
-		  return -4;
-		}
-
-	      if (pso->flags & F_OPSOCK_BIND)
-		{
-		  struct sockaddr_in localaddr;
-		  localaddr.sin_family = pso->res->ai_family;
-		  localaddr.sin_addr = pso->bind_ip;
-		  localaddr.sin_port = 0;
-
-		  if (bind (pso->sock, (struct sockaddr *) &localaddr,
-			    sizeof(localaddr)) == -1)
-		    {
-		      return -4;
-		    }
-		}
-
-	      pso->timers.l_est_try = (time_t) time (NULL);
-	      pso->counters.con_retries++;
-	    }
-	  else
-	    {
-	      pso->flags |= F_OPSOCK_TERM;
-
-	      return -4;
-	    }
-
-	}
-    }
-  else if (!r)
+  if (!r)
     {
       log (L_DEBUG "net_conn_establish: [%d]: %I:%d established", pso->sock,
 	   *((ip_addr*) pso->ipr.ip), (int) pso->ipr.port);
@@ -676,6 +612,67 @@ net_conn_establish_async (__sock_o pso, __net_task task)
 
       pso->timers.l_est_try = (time_t) 0;
       return -2;
+    }
+
+  if (errno == EINPROGRESS)
+    {
+      log (L_DEBUG "net_conn_establish_async: [%d]: connecting %I:%d..",
+	   pso->sock, *((ip_addr*) pso->ipr.ip), (int) pso->ipr.port);
+    }
+  else if ( errno == EALREADY)
+    {
+
+    }
+  else
+    {
+      char b[1024];
+      strerror_r (errno, b, sizeof(b));
+      log (
+      L_ERR "net_conn_establish_async: [%d]: %s: %I:%d ",
+	   pso->sock, b, *((ip_addr*) pso->ipr.ip), (int) pso->ipr.port);
+
+      if ((pso->flags & F_OPSOCK_RETRY)
+	  && (!pso->policy.max_connect_retries
+	      || pso->counters.con_retries < pso->policy.max_connect_retries))
+	{
+	  close (pso->sock);
+	  if ((pso->sock = socket (pso->res->ai_family, pso->res->ai_socktype,
+				   pso->res->ai_protocol)) == -1)
+	    {
+	      pso->flags |= F_OPSOCK_TERM;
+	      return -4;
+	    }
+
+	  if (fcntl (pso->sock, F_SETFL, O_NONBLOCK) == -1)
+	    {
+	      pso->flags |= F_OPSOCK_TERM;
+	      return -4;
+	    }
+
+	  if (pso->flags & F_OPSOCK_BIND)
+	    {
+	      struct sockaddr_in localaddr;
+	      localaddr.sin_family = pso->res->ai_family;
+	      localaddr.sin_addr = pso->bind_ip;
+	      localaddr.sin_port = 0;
+
+	      if (bind (pso->sock, (struct sockaddr *) &localaddr,
+			sizeof(localaddr)) == -1)
+		{
+		  return -4;
+		}
+	    }
+
+	  pso->timers.l_est_try = (time_t) time (NULL);
+	  pso->counters.con_retries++;
+	}
+      else
+	{
+	  pso->flags |= F_OPSOCK_TERM;
+
+	  return -4;
+	}
+
     }
 
   return 1;

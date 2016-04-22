@@ -1658,7 +1658,7 @@ C_PRELOAD(irc_c_privmsg, !=1)
       IRC_C_ERRQUIT_M(1, "message too large")
     }
 
-  int ret = irc_relay_message (pso, sizeof(ip_addr) * 8, r->cmd, subject,
+  int ret = irc_relay_message (pso, r->cmd, subject,
 			       r->trailer);
 
   if (ret == 1)
@@ -2533,7 +2533,7 @@ irc_relay_send_pkt_out (__sock_o origin, mrl_dpkt *pkt, net *n)
 }
 
 int
-irc_relay_message (__sock_o origin, int scope, char *code, char *target,
+irc_relay_message (__sock_o origin, char *code, char *target,
 		   char *message)
 {
 
@@ -2564,7 +2564,7 @@ irc_relay_message (__sock_o origin, int scope, char *code, char *target,
       irc_deliver_mrl_chan (origin, msg);
 
       gtable_t *item = ht_get (server_ctx.map_chan_to_ipas.ht,
-			       (unsigned char*) &msg->args[1],
+			       (unsigned char*) &target[1],
 			       strlen (msg->args) - 1);
       if (item)
 	{
@@ -2638,7 +2638,7 @@ irc_relay_message (__sock_o origin, int scope, char *code, char *target,
 	}
 
       pkt->dest.addr = *ha;
-      pkt->dest.len = scope;
+      pkt->dest.len = sizeof(ip_addr) * 8;
       pkt->code = PROT_RELAY_FORWARD;
       pkt->ttl = 100;
 
