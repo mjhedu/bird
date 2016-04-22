@@ -2739,7 +2739,7 @@ _irc_create_listening_socket (__sock_ca ca)
   ca->policy.idle_timeout = 900;
   ca->policy.close_timeout = 30;
   ca->policy.send_timeout = 30;
-  ca->policy.max_sim_ip = 5;
+  //ca->policy.max_sim_ip = 5;
 
   int ret = net_open_listening_socket (ca->host, ca->port, ca);
 
