@@ -1998,6 +1998,7 @@ net_proto_irc_socket_destroy0 (__sock_o pso)
 	    }
 	  if (uirc->u_settings.net_name)
 	    {
+	      server_ctx.map_nick_to_ipa.ht->flags |= F_HT_FREEVAL_ONCE;
 	      ht_remove (server_ctx.map_nick_to_ipa.ht,
 			 uirc->u_settings.net_name,
 			 strlen (uirc->u_settings.net_name));
