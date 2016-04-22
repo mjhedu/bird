@@ -830,7 +830,7 @@ irc_proto_cache_gch (ip_addr *prefix, char *name, uint32_t flags)
     }
 }
 
-int
+static int
 irc_do_user_quit (__sock_o pso)
 {
   struct proto_irc_u *uirc = pso->va_p1;
@@ -848,9 +848,6 @@ irc_do_user_quit (__sock_o pso)
 	}MD_END
 
   free (bd);
-
-  irc_proto_cache_n (&uirc->net.addr, uirc->u_settings.net_name,
-  F_IRC_CACHE_REMOVE);
 
   return 0;
 
@@ -2029,6 +2026,9 @@ net_proto_irc_socket_destroy0 (__sock_o pso)
       if (bbr)
 	{
 
+	  irc_proto_cache_n (&bbr->n->n.prefix, bbr->n->n.ea_cache.net_name,
+			     F_IRC_CACHE_REMOVE);
+
 	  bbr->n->n.pso = NULL;
 
 	  br_route_remove (&br_routes, bbr);
@@ -2229,8 +2229,6 @@ irc_proto_proc_update (net *n, uint32_t flags)
 
   if (n->n.pxlen != 32)
     {
-      log (L_FATAL"irc_proto_proc_update: nonstandard pxlen: %I/%u",
-	   n->n.prefix, n->n.pxlen);
       return 0;
     }
 
