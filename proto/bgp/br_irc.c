@@ -725,9 +725,9 @@ irc_channel_cleanup_loc (proto_irc_chan *pic, __sock_o pso, char *chan)
 }
 
 static void
-irc_proto_cache_n (net *n, irc_ea_payload *pl, uint32_t flags)
+irc_proto_cache_n (net *n, char *net_name, uint32_t flags)
 {
-  if (!pl->net_name[0])
+  if (!net_name[0])
     {
       return;
     }
@@ -736,14 +736,14 @@ irc_proto_cache_n (net *n, irc_ea_payload *pl, uint32_t flags)
     {
       ip_addr *ipa = malloc (sizeof(ip_addr));
       *ipa = n->n.prefix;
-      ht_set (server_ctx.map_nick_to_ipa.ht, pl->net_name,
-	      strlen (pl->net_name), ipa, 0);
+      ht_set (server_ctx.map_nick_to_ipa.ht, net_name,
+	      strlen (net_name), ipa, 0);
     }
   else if (flags & F_IRC_CACHE_REMOVE)
     {
       server_ctx.map_nick_to_ipa.ht->flags |= F_HT_FREEVAL_ONCE;
-      ht_remove (server_ctx.map_nick_to_ipa.ht, pl->net_name,
-		 strlen (pl->net_name));
+      ht_remove (server_ctx.map_nick_to_ipa.ht, net_name,
+		 strlen (net_name));
     }
 }
 
@@ -1093,7 +1093,7 @@ if_login (__sock_o pso)
 
       struct bgp_br_route *bbr = pso->va_p0;
       memcpy (&bbr->n->n.ea_cache, ipl, sizeof(irc_ea_payload));
-      irc_proto_cache_n (bbr->n, ipl, F_IRC_CACHE_UPDATE);
+      irc_proto_cache_n (bbr->n, ipl->net_name, F_IRC_CACHE_UPDATE);
 
       free (pl);
 
@@ -1794,9 +1794,9 @@ irc_c_nick (__sock_o pso, void *data)
 		    uirc->u_settings.net_name);
 	  snprintf (ipl->true_name, sizeof(ipl->true_name), "%s",
 		    uirc->u_settings.true_name);
-	  irc_proto_cache_n (bbr->n, &bbr->n->n.ea_cache,
+	  irc_proto_cache_n (bbr->n, bbr->n->n.ea_cache.net_name,
 	  F_IRC_CACHE_REMOVE);
-	  irc_proto_cache_n (bbr->n, ipl, F_IRC_CACHE_UPDATE);
+	  irc_proto_cache_n (bbr->n, ipl->net_name, F_IRC_CACHE_UPDATE);
 	  memcpy (&bbr->n->n.ea_cache, ipl, sizeof(irc_ea_payload));
 	  br_trigger_update (brc_st_proto->c.proto, bbr->n);
 	}
@@ -2112,7 +2112,7 @@ irc_process_route_withdraw (net *n, uint32_t flags)
 
   free (data);
 
-  irc_proto_cache_n (n, cache, F_IRC_CACHE_REMOVE);
+  irc_proto_cache_n (n, cache->net_name, F_IRC_CACHE_REMOVE);
   memset (cache, 0x0, sizeof(irc_ea_payload));
 
   return 0;
@@ -2325,15 +2325,15 @@ irc_proto_proc_update (net *n, uint32_t flags)
 
 	  free (data);
 
-	  irc_proto_cache_n (n, cache, F_IRC_CACHE_REMOVE);
-	  irc_proto_cache_n (n, pl, F_IRC_CACHE_UPDATE);
+	  irc_proto_cache_n (n, cache->net_name, F_IRC_CACHE_REMOVE);
+	  irc_proto_cache_n (n, pl->net_name, F_IRC_CACHE_UPDATE);
 	}
 
     }
   else
     {
-      irc_proto_cache_n (n, pl, F_IRC_CACHE_REMOVE);
-      irc_proto_cache_n (n, pl, F_IRC_CACHE_UPDATE);
+      irc_proto_cache_n (n, pl->net_name, F_IRC_CACHE_REMOVE);
+      irc_proto_cache_n (n, pl->net_name, F_IRC_CACHE_UPDATE);
     }
 
   for (i = 0; i < PAYLOAD_CR_SIZE; i++)
