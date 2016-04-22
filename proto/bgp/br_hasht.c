@@ -141,6 +141,11 @@ ht_remove (hashtable_t *hashtable, unsigned char *key, size_t k_size)
 
       free (next->key);
 
+      if (hashtable->flags & F_HT_FREEVAL_ONCE)
+	{
+	  free (next->value);
+	}
+
       /* We're at the start of the linked list in this bin. */
       if (next == hashtable->table[bin])
 	{
@@ -160,6 +165,11 @@ ht_remove (hashtable_t *hashtable, unsigned char *key, size_t k_size)
       free (next);
 
       return 0;
+    }
+
+  if (hashtable->flags & F_HT_FREEVAL_ONCE)
+    {
+      hashtable->flags ^= F_HT_FREEVAL_ONCE;
     }
 
   return 1;
@@ -192,9 +202,9 @@ ht_set (hashtable_t *hashtable, unsigned char *key, size_t k_size, void *value,
     {
       next->value = value;
 
-      /* Nope, could't find it.  Time to grow a pair. */
     }
   else
+  /* Nope, could't find it.  Time to grow a pair. */
     {
       newpair = ht_newpair (key, k_size, value, size);
 

@@ -36,6 +36,9 @@ struct cli;
 #include "proto/bgp/br_irc_proto.h"
 #include "proto/bgp/brc_net_io.h"
 
+#define F_FN_ALWAYS_PROPAGATE	(byte)1
+#define F_FN_LOCORIGIN		(byte)1 << 1
+
 struct fib_node {
   struct fib_node *next;		/* Next in hash chain */
   struct fib_iterator *readers;		/* List of readers of this node */
@@ -45,6 +48,7 @@ struct fib_node {
   u32 uid;				/* Unique ID based on hash */
   ip_addr prefix;			/* In host order */
   irc_ea_payload ea_cache;
+  byte kflags;
   __sock_o pso;
 };
 
@@ -72,6 +76,7 @@ struct fib {
 
 void fib_init(struct fib *, pool *, unsigned node_size, unsigned hash_order, fib_init_func init);
 void *fib_find(struct fib *, ip_addr *, int);	/* Find or return NULL if doesn't exist */
+void *fib_find_rng(struct fib *f, ip_addr *a, int l, int h);
 void *fib_get(struct fib *, ip_addr *, int); 	/* Find or create new if nonexistent */
 void *fib_route(struct fib *, ip_addr, int);	/* Longest-match routing lookup */
 void fib_delete(struct fib *, void *);	/* Remove fib entry */
@@ -263,6 +268,7 @@ void rt_lock_table(rtable *);
 void rt_unlock_table(rtable *);
 void rt_setup(pool *, rtable *, char *, struct rtable_config *);
 static inline net *net_find(rtable *tab, ip_addr addr, unsigned len) { return (net *) fib_find(&tab->fib, &addr, len); }
+static inline net *net_find_rng(rtable *tab, ip_addr addr, unsigned l, unsigned h) { return (net *) fib_find_rng(&tab->fib, &addr, l, h); }
 static inline net *net_get(rtable *tab, ip_addr addr, unsigned len) { return (net *) fib_get(&tab->fib, &addr, len); }
 rte *rte_find(net *net, struct rte_src *src);
 rte *rte_get_temp(struct rta *);

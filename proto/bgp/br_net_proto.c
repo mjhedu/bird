@@ -5,15 +5,17 @@
  *      Author: reboot
  */
 
-#include "br_net_proto.h"
-
 #include <stdio.h>
+#include <limits.h>
 
 #include "brc_memory.h"
 #include "brc_net_io.h"
 
-mda pc_a =
-  { 0 };
+#include "br_net_proto.h"
+
+md_obj pc_a[UCHAR_MAX] =
+  {
+    { 0 } };
 
 int
 net_baseline_socket_init0 (__sock_o pso)
@@ -113,6 +115,20 @@ net_baseline_respond_protocol_version (__sock_o pso)
   //pso->flags |= F_OPSOCK_TERM;
 }
 
+static void
+net_baseline_respond_pong (__sock_o pso)
+{
+
+  _bp_header bp =
+    { 0 };
+
+  bp.prot_code = PROT_CODE_BASELINE_KEEPALIVE_PONG;
+
+  net_send_direct (pso, &bp, sizeof(bp));
+
+  //pso->flags |= F_OPSOCK_TERM;
+}
+
 static int
 net_baseline_proc_tier1_req (__sock_o pso, __bp_header bph)
 {
@@ -122,6 +138,13 @@ net_baseline_proc_tier1_req (__sock_o pso, __bp_header bph)
       net_baseline_respond_protocol_version (pso);
       break;
     case PROT_CODE_BASELINE_KEEPALIVE:
+      /*log (L_DEBUG "net_baseline_proc_tier1_req: [%d]: got keepalive ping",
+       pso->sock);*/
+      net_baseline_respond_pong (pso);
+      break;
+    case PROT_CODE_BASELINE_KEEPALIVE_PONG:
+      /*log (L_DEBUG "net_baseline_proc_tier1_req: [%d]: got keepalive pong",
+       pso->sock);*/
       break;
     default:
       return 1;
@@ -147,7 +170,7 @@ net_baseline_prochdr (__sock_o pso, pmda base, pmda threadr, void *data)
 
   __bp_header bph = (__bp_header) data;
 
-  _p_s_cb protf = (_p_s_cb) pc_a.objects[bph->prot_code].ptr;
+  _p_s_cb protf = (_p_s_cb) pc_a[bph->prot_code].ptr;
 
   if (NULL == protf)
     {

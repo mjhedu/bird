@@ -1693,8 +1693,8 @@ proto_apply_cmd (struct proto_spec ps, void
     proto_apply_cmd_symbol (ps.ptr, cmd, arg);
 }
 
-void
-proto_enum (void
+int
+proto_enum (int
 (*cmd) (struct proto *, unsigned int, int, void *),
 	    unsigned int arg, void *data)
 {
@@ -1706,8 +1706,17 @@ proto_enum (void
     {
       struct proto *p = SKIP_BACK(struct proto, glob_node, nn);
 
-      cmd (p, arg, cnt++, data);
+      int r = cmd (p, arg, cnt++, data);
+      if (r == -2)
+	{
+	  break;
+	}
+      else if (r)
+	{
+	  return 1;
+	}
     }
+  return 0;
 }
 
 struct proto *

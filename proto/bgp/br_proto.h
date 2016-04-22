@@ -63,6 +63,7 @@ typedef struct generic_table
 {
   mda r;
   hashtable_t *ht;
+  void *p,*rp;
 } gtable_t;
 
 typedef struct gt_lwrap
@@ -73,17 +74,5 @@ typedef struct gt_lwrap
 } gt_lwrap;
 
 
-struct irc_srv_config
-{
-  char *hostname;
-  ip_addr listen_add;
-  ip_addr relay_listen_add;
-  int listen_port;
-  int relay_listen_port;
-  struct prefix pfx;
-  uint32_t max_hosts;
-};
-
-struct irc_srv_config _icf_global;
 
 #endif /* PROTO_BGP_BR_PROTO_H_ */

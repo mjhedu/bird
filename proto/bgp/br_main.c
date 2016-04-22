@@ -19,6 +19,15 @@
 
 mda _boot_pca =
   { 0 };
+sigset_t default_set =
+  {
+    { 0 } };
+
+void
+net_io_handler_dummy (int signal)
+{
+
+}
 
 void
 net_io_handler (int signal)
@@ -35,37 +44,36 @@ net_io_sched (pid_t pid)
       kill (pid, SIGUSR2);
       sleep (1);
     }
+  _exit (0);
 }
 
 int
 br_main (void)
 {
+  sigset_t sigset;
+  sigemptyset (&sigset);
+  sigaddset (&sigset, SIGIO);
+  sigaddset (&sigset, SIGUSR2);
+  sigprocmask (SIG_BLOCK, &sigset, &default_set);
 
-  signal (SIGIO, net_io_handler);
-  signal (SIGUSR2, net_io_handler);
+  sigemptyset (&sigset);
+  sigaddset (&sigset, SIGPIPE);
+  sigprocmask (SIG_BLOCK, &sigset, NULL);
+
+  log (L_INFO "br_main: %ub", sizeof(irc_ea_payload));
+
+  signal (SIGIO, net_io_handler_dummy);
+  signal (SIGUSR2, net_io_handler_dummy);
 
   ssl_init ();
 
-  md_init (&_boot_pca, 4096);
-  md_init (&pc_a, 64);
+  md_init (&_boot_pca);
 
-  __sock_ca ca;
+  _mrl_startup (&_icf_global.ca_relay);
 
-  if (NULL == (ca = md_alloc (&_boot_pca, sizeof(_sock_ca), 0, NULL)))
-    {
-      return 1;
-    }
+  _irc_startup (&_boot_pca);
 
-  _mrl_startup (ca);
-
-  if (NULL == (ca = md_alloc (&_boot_pca, sizeof(_sock_ca), 0, NULL)))
-    {
-      return 1;
-    }
-
-  _irc_startup (ca);
-
-  pid_t c_pid, p_pid = getpid ();
+  /*pid_t c_pid, p_pid = getpid ();
 
   if ((c_pid = fork ()) == (pid_t) -1)
     {
@@ -76,7 +84,7 @@ br_main (void)
     {
       net_io_sched (p_pid);
     }
-
+*/
   return 0;
 
 }

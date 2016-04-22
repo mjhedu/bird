@@ -2055,12 +2055,6 @@ io_loop(void)
   sock *s;
   node *n;
 
-  sigset_t sigset, oldset;
-  sigemptyset(&sigset);
-  sigaddset(&sigset, SIGIO);
-  sigaddset(&sigset, SIGUSR2);
-  sigprocmask(SIG_BLOCK, &sigset, &oldset);
-
   watchdog_start1();
   sock_recalc_fdsets_p = 1;
   for(;;)
@@ -2136,15 +2130,21 @@ io_loop(void)
 
       /* And finally enter select() to find active sockets */
       watchdog_stop();
-      hi = pselect(hi+1, &rd, &wr, NULL, &timo, &oldset);
+      hi = pselect(hi+1, &rd, &wr, NULL, &timo, &default_set);
       watchdog_start();
 
       if (hi < 0)
 	{
 	  if (errno == EINTR || errno == EAGAIN)
-	    continue;
+	    {
+	      net_io_handler(0);
+	      continue;
+	    }
 	  die("select: %m");
 	}
+
+      net_io_handler(0);
+
       if (hi)
 	{
 	  /* guaranteed to be non-empty */
@@ -2212,7 +2212,6 @@ io_loop(void)
 
 	  stored_sock = current_sock;
 	}
-      net_io_handler(0);
     }
 }
 

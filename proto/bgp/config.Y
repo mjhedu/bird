@@ -24,7 +24,7 @@ CF_KEYWORDS(HOOK, AHOOK, ESTABLISHED, ENTER, INIT, DOWN,
 	SHUTDOWN, GREST, CONN, INBOUND, OUTBOUND, FEED, TIMEOUT,
 	UPDATE, WITHDRAW, ROUTE, IMPORT, EXPORT)
 	
-CF_KEYWORDS(BGP_REMOTE_AS, BGP_LOCAL_AS, RELAY)
+CF_KEYWORDS(BGP_REMOTE_AS, BGP_LOCAL_AS, RELAY, SECURE)
 
 CF_KEYWORDS(BGP, LOCAL, NEIGHBOR, AS, HOLD, TIME, CONNECT, RETRY,
 	KEEPALIVE, MULTIHOP, STARTUP, VIA, NEXT, HOP, SELF, DEFAULT,
@@ -67,6 +67,8 @@ bgp_proto_start: proto_start BGP {
      BGP_CFG->c.link_latency = 0;
      BGP_CFG->c.link_bandwidth = 0;
      BGP_CFG->relay = 0;
+     memset(&BGP_CFG->rlink_ca, 0x0, sizeof(BGP_CFG->rlink_ca));
+     BGP_CFG->rlink_ca.ipr00.port = 1179;
  }
  ;
 
@@ -195,7 +197,36 @@ bgp_proto:
  | bgp_proto TTL SECURITY bool ';' { BGP_CFG->ttl_security = $4; }
  | bgp_proto CHECK LINK bool ';' { BGP_CFG->check_link = $4; }
  | bgp_proto BFD bool ';' { BGP_CFG->bfd = $3; cf_check_bfd($3); }
- | bgp_proto RELAY bool ';' { BGP_CFG->relay = $3; }
+ | bgp_proto bgp_relay '}' ';'
+ ;
+ 
+ bgp_relay_start: RELAY {		
+		BGP_CFG->relay = 1;
+	}
+  ;
+   
+ bgp_relay:   
+	bgp_relay_start '{'
+ | bgp_relay bgp_relay_opts ';' 
+ | bgp_relay SSLKEY text ';' { BGP_CFG->rlink_ca.ssl_key = $3; }
+ | bgp_relay SSLCERT text ';' { BGP_CFG->rlink_ca.ssl_cert = $3; }
+ | bgp_relay SSLCA text ';' { BGP_CFG->rlink_ca.ssl_ca = $3; }
+;
+ 
+ bgp_relay_opts:
+   /* Nothing */
+ | bgp_relay_opts bgp_relay_opt
+ ; 
+
+bgp_relay_opt: 
+   ENABLE { BGP_CFG->relay = 1; }
+ | SECURE { BGP_CFG->rlink_ca.flags |= F_OPSOCK_SSL; }
+  | PORT expr { 
+ 		BGP_CFG->rlink_ca.ipr00.port = (uint16_t) $2;
+ 	}
+ | VERIFY expr { 
+ 		BGP_CFG->rlink_ca.policy.ssl_verify = $2;
+ 	}
  ;
 
 CF_ADDTO(dynamic_attr, BGP_ORIGIN

@@ -74,7 +74,6 @@ CF_DECLS
 
 %type <i> expr bool pxlen
 %type <i32> expr_us
-%type <time> datetime
 %type <a> ipa
 %type <px> prefix prefix_or_ipa
 %type <t> text
@@ -181,14 +180,6 @@ pxlen:
  | ':' ipa {
      $$ = ipa_masklen($2);
      if ($$ < 0) cf_error("Invalid netmask %I", $2);
-   }
- ;
-
-datetime:
-   TEXT {
-     $$ = tm_parse_datetime($1);
-     if (!$$)
-       cf_error("Invalid date and time");
    }
  ;
 

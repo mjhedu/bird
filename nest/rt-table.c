@@ -683,7 +683,7 @@ rte_recalculate(struct announce_hook *ah, net *net, rte *new, ea_list *tmpa, str
 	      return;
 	    }
 
-	  if (new && rte_same(old, new))
+	  if ( !(net->n.kflags & F_FN_ALWAYS_PROPAGATE) && new &&  rte_same(old, new))
 	    {
 	      /* No changes, ignore the new route */
 
@@ -1044,17 +1044,20 @@ rte_update2(struct announce_hook *ah, net *net, rte *new, struct rte_src *src)
 	new->attrs = rta_lookup(new->attrs);
       new->flags |= REF_COW;
 
-      if ( !(new->flags & REF_FILTERED) &&
-	  (filter_hook_dispatcher(BGP_HOOK_IMPORT, p, new) & HOOK_STATUS_BAD) )
+      if ( !(new->flags & REF_FILTERED))
 	{
-	  stats->imp_updates_filtered++;
-	  rte_trace_in(D_FILTERS, p, new, "filtered out");
+	  if ( (filter_hook_dispatcher(BGP_HOOK_IMPORT, p, new) & HOOK_STATUS_BAD) ||
+	      irc_proto_validate_update(net, new)) {
+	    stats->imp_updates_filtered++;
+	    rte_trace_in(D_FILTERS, p, new, "filtered out");
 
-	  if (! ah->in_keep_filtered)
-	    goto drop;
+	    if (! ah->in_keep_filtered)
+	      goto drop;
 
-	  new->flags |= REF_FILTERED;
+	    new->flags |= REF_FILTERED;
+	  }
 	}
+
     }
   else
     {
@@ -1074,7 +1077,7 @@ rte_update2(struct announce_hook *ah, net *net, rte *new, struct rte_src *src)
   rte_recalculate(ah, net, new, tmpa, src);
   rte_unhide_dummy_routes(net, &dummy);
   rte_update_unlock();
-  irc_proto_rx_proc (net, F_RXP_GRACEFULL);
+  irc_proto_proc_update (net, F_RXP_GRACEFULL);
   return;
 
  drop:
@@ -1103,7 +1106,7 @@ rte_discard(rtable *t, rte *old)	/* Non-filtered route deletion, used during gar
   rte_update_lock();
   rte_recalculate(old->sender, old->net, NULL, NULL, old->attrs->src);
   rte_update_unlock();
-  irc_proto_rx_proc (old->net, 0);
+  irc_proto_proc_update (old->net, 0);
 }
 
 /* Check rtable for best route to given net whether it would be exported do p */

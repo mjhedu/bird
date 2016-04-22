@@ -245,7 +245,12 @@ bgp_start_timer (timer *t, int value)
 void
 bgp_close_conn (struct bgp_conn *conn)
 {
-  // struct bgp_proto *p = conn->bgp;
+  struct bgp_proto *p = conn->bgp;
+
+  if (p && p->rlink_sock)
+    {
+      p->rlink_sock->flags |= F_OPSOCK_TERM;
+    }
 
   DBG("BGP: Closing connection\n");
   conn->packets_to_send = 0;
@@ -433,6 +438,11 @@ bgp_conn_leave_established_state (struct bgp_proto *p)
   BGP_TRACE(D_EVENTS, "BGP session closed");
 
   bgp_hook_run (BGP_HOOK_LEAVE_ESTABLISHED, p, NULL, NULL);
+
+  if (p->rlink_sock)
+    {
+      p->rlink_sock->flags |= F_OPSOCK_TERM;
+    }
 
   p->conn = NULL;
 
@@ -632,8 +642,10 @@ bgp_connected (sock *sk)
 
   if (bgp_hook_run (BGP_HOOK_CONN_OUTBOUND, p, NULL, NULL) & HOOK_STATUS_BAD)
     bgp_stop (conn->bgp, 0);
-  else if (p->cf->relay)
-    mrl_open_conn (p, p->cf->remote_ip, 1179, &p->rlink_ca);
+  else if (p->cf->relay && !p->rlink_sock)
+    mrl_open_conn (p, p->cf->remote_ip, p->cf->rlink_ca.ipr00.port,
+		   &p->cf->rlink_ca);
+
 }
 
 static void

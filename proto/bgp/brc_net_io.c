@@ -6,7 +6,6 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
-#include <unistd.h>
 
 #include <errno.h>
 
@@ -22,6 +21,7 @@
 #define __USE_GNU 1
 
 #include <fcntl.h>
+#include <unistd.h>
 
 #include "br_ea.h"
 #include "br_proto.h"
@@ -55,27 +55,23 @@ ssl_init (void)
 {
   int i;
 
-  CRYPTO_malloc_debug_init()
-  ;
+  //CRYPTO_malloc_debug_init();
 
   CRYPTO_mem_ctrl (CRYPTO_MEM_CHECK_ON);
-
-  mutex_buf = malloc (CRYPTO_num_locks () * sizeof(pthread_mutex_t));
-  if (mutex_buf == NULL)
-    {
-      log (L_ERR "ssl_init: could not allocate mutex memory");
-      abort ();
-    }
-  for (i = 0; i < CRYPTO_num_locks (); i++)
-    {
-      pthread_mutex_init (&mutex_buf[i], NULL);
-    }
+  /*mutex_buf = calloc (1, CRYPTO_num_locks () * sizeof(pthread_mutex_t));
+   if (mutex_buf == NULL)
+   {
+   log (L_ERR "ssl_init: could not allocate mutex memory");
+   abort ();
+   }
+   for (i = 0; i < CRYPTO_num_locks (); i++)
+   {
+   pthread_mutex_init (&mutex_buf[i], NULL);
+   }*/
 
   //setenv ("OPENSSL_DEFAULT_ZLIB", "1", 1);
-
-  CRYPTO_set_locking_callback (ssl_locking_function);
-  CRYPTO_set_id_callback (ssl_id_function);
-
+  //CRYPTO_set_locking_callback (ssl_locking_function);
+  //CRYPTO_set_id_callback (ssl_id_function);
   SSL_library_init ();
   OpenSSL_add_all_algorithms();
   SSL_load_error_strings ();
@@ -109,9 +105,8 @@ ssl_cleanup (void)
    CRYPTO_set_dynlock_lock_callback(NULL);
    CRYPTO_set_dynlock_destroy_callback(NULL);*/
 
-  CRYPTO_set_locking_callback (NULL);
-  CRYPTO_set_id_callback (NULL);
-
+  //CRYPTO_set_locking_callback (NULL);
+  //CRYPTO_set_id_callback (NULL);
   for (i = 0; i < CRYPTO_num_locks (); i++)
     {
       pthread_mutex_destroy (&mutex_buf[i]);
@@ -130,11 +125,46 @@ ssl_cleanup (void)
 }
 
 static void
+announce_ssl_connect_event (__sock_o pso, char *ev)
+{
+  int eb;
+
+  int sb = SSL_CIPHER_get_bits (SSL_get_current_cipher (pso->ssl), &eb);
+
+  char cd[255];
+
+  char *p = SSL_CIPHER_description (SSL_get_current_cipher (pso->ssl), cd,
+				    sizeof(cd));
+  char *pc;
+
+  if (p && (pc = strchr (p, 0xA)))
+    {
+      pc[0] = 0x0;
+    }
+
+  log (L_DEBUG "%s: %d, %s (%d / %d) - %s", ev, pso->sock,
+       SSL_get_cipher(pso->ssl), eb, sb,
+       SSL_CIPHER_get_version (SSL_get_current_cipher (pso->ssl)));
+
+  log (L_DEBUG "SSL_CIPHER_description: %d, %s", pso->sock, p);
+
+}
+
+static void
 ssl_init_setctx (__sock_o pso)
 {
   SSL_CTX_set_options(pso->ctx, SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3);
 
-  SSL_CTX_set_cipher_list (pso->ctx, "-ALL:ALL:-ADH:-aNULL");
+  __sock_ca ca = pso->sock_ca;
+
+  if (!SSL_CTX_set_cipher_list (
+      pso->ctx,
+      ca->ssl_cipher_list ? ca->ssl_cipher_list : "-ALL:ALL:-ADH:-aNULL"))
+    {
+      log (L_ERR "ssl_init_setctx: [%d]: SSL_CTX_set_cipher_list failed: %s",
+	   pso->sock, ca->ssl_cipher_list);
+      pso->flags |= F_OPSOCK_TERM;
+    }
 
   SSL_CTX_set_verify (pso->ctx, pso->policy.ssl_verify, NULL);
 
@@ -186,6 +216,7 @@ ssl_load_client_certs (SSL* ssl, char* cert_file, char* key_file)
     {
       return 2;
     }
+
   /* verify private key */
   if (!SSL_check_private_key (ssl))
     {
@@ -197,9 +228,10 @@ ssl_load_client_certs (SSL* ssl, char* cert_file, char* key_file)
 }
 
 int
-ssl_load_server_certs (SSL_CTX* ctx, char* cert_file, char* key_file)
+ssl_load_server_certs (SSL_CTX* ctx, char* cert_file, char* key_file,
+		       char *ca_file)
 {
-  if (SSL_CTX_load_verify_locations (ctx, cert_file, key_file) != 1)
+  if (SSL_CTX_load_verify_locations (ctx, cert_file, NULL) != 1)
     {
       return 1;
     }
@@ -219,6 +251,23 @@ ssl_load_server_certs (SSL_CTX* ctx, char* cert_file, char* key_file)
     {
       return 2;
     }
+
+  if (ca_file)
+    {
+      STACK_OF(X509_NAME) *cert_names;
+
+      cert_names = SSL_load_client_CA_file (ca_file);
+      if (cert_names != NULL)
+	SSL_CTX_set_client_CA_list (ctx, cert_names);
+      else
+	return 1;
+
+      if (SSL_CTX_load_verify_locations (ctx, ca_file, NULL) != 1)
+	{
+	  return 1;
+	}
+    }
+
   /* verify private key */
   if (!SSL_CTX_check_private_key (ctx))
     {
@@ -336,17 +385,17 @@ net_listener_chk_timeout (__sock_o pso)
 static void
 net_failclean (__sock_o so)
 {
-  md_g_free (&so->sendq);
-  md_g_free (&so->init_rc0);
-  md_g_free (&so->init_rc1);
-  md_g_free (&so->shutdown_rc0);
-  md_g_free (&so->shutdown_rc1);
-  md_g_free (&so->init_rc0_ssl);
-  md_g_free (&so->c_tasks);
-  md_g_free (&so->ct_tasks);
-  md_g_free (&so->t_tasks);
-  md_g_free (&so->tasks);
-  md_g_free (&so->t_rcv);
+  md_free (&so->sendq);
+  md_free (&so->init_rc0);
+  md_free (&so->init_rc1);
+  md_free (&so->shutdown_rc0);
+  md_free (&so->shutdown_rc1);
+  md_free (&so->init_rc0_ssl);
+  md_free (&so->c_tasks);
+  md_free (&so->ct_tasks);
+  md_free (&so->t_tasks);
+  md_free (&so->tasks);
+  md_free (&so->t_rcv);
 }
 
 static void
@@ -357,6 +406,8 @@ net_open_connection_cleanup (pmda sockr, struct addrinfo *aip, int fd)
     freeaddrinfo (aip);
   md_unlink (sockr, sockr->pos);
 }
+
+#define NET_MSG_FAIL(m) char b[1024]; strerror_r(errno, b, sizeof(b)); log(L_ERR "[%s:%s] %s: %s",addr,port,m, b);
 
 int
 net_open_connection (char *addr, char *port, __sock_ca args)
@@ -373,11 +424,13 @@ net_open_connection (char *addr, char *port, __sock_ca args)
 
   if (getaddrinfo (addr, port, &hints, &aip))
     {
+      NET_MSG_FAIL("getaddrinfo")
       return -1;
     }
 
   if ((fd = socket (aip->ai_family, aip->ai_socktype, aip->ai_protocol)) == -1)
     {
+      NET_MSG_FAIL("failed to create socket")
       freeaddrinfo (aip);
       return -2;
     }
@@ -386,9 +439,27 @@ net_open_connection (char *addr, char *port, __sock_ca args)
 
   if ((ret = fcntl (fd, F_SETFL, O_NONBLOCK)) == -1)
     {
+      NET_MSG_FAIL("fcntl")
       freeaddrinfo (aip);
       close (fd);
       return -4;
+    }
+
+  if (args->flags & F_OPSOCK_BIND)
+    {
+      struct sockaddr_in localaddr;
+      localaddr.sin_family = aip->ai_family;
+      localaddr.sin_addr = args->bind_ip;
+      localaddr.sin_port = 0;
+
+      if (bind (fd, (struct sockaddr *) &localaddr, sizeof(localaddr)) == -1)
+	{
+	  NET_MSG_FAIL("bind")
+	  freeaddrinfo (aip);
+	  close (fd);
+	  return -5;
+	}
+
     }
 
   __sock_o pso;
@@ -411,6 +482,7 @@ net_open_connection (char *addr, char *port, __sock_ca args)
   pso->st_p0 = args->st_p0;
   pso->policy = args->policy;
   pso->sock_ca = (void*) args;
+  pso->bind_ip = args->bind_ip;
 
   net_addr_to_ipr (pso, &pso->ipr);
 
@@ -441,14 +513,14 @@ net_open_connection (char *addr, char *port, __sock_ca args)
       pso->unit_size = args->unit_size;
     }
 
-  pso->buffer0 = calloc (1, pso->unit_size + 16);
+  pso->buffer0 = calloc (1, pso->unit_size + 2);
   pso->buffer0_len = pso->unit_size;
 
   pso->host_ctx = args->socket_register;
 
   if (args->flags & F_OPSOCK_INIT_SENDQ)
     {
-      md_init (&pso->sendq, MAX_NET_SENDQ);
+      md_init (&pso->sendq);
     }
 
   int r;
@@ -499,7 +571,7 @@ net_open_connection (char *addr, char *port, __sock_ca args)
 
       pso->send0 = (_p_ssend) net_ssend_ssl_b;
 
-      log (L_DEBUG "net_open_connection: enabling SSL..");
+      //log (L_DEBUG "net_open_connection: enabling SSL..");
       //pso->send0 = (_p_ssend) net_ssend_ssl;
     }
   else
@@ -529,14 +601,13 @@ net_conn_establish_async (__sock_o pso, __net_task task)
       return 1;
     }
 
-  int fd = pso->sock;
-  int r = connect (fd, pso->res->ai_addr, pso->res->ai_addrlen);
+  int r = connect (pso->sock, pso->res->ai_addr, pso->res->ai_addrlen);
 
   if (r == -1)
     {
       if (errno == EINPROGRESS)
 	{
-	  log (L_DEBUG "net_conn_establish: [%d]: connecting %I:%d..",
+	  log (L_DEBUG "net_conn_establish_async: [%d]: connecting %I:%d..",
 	       pso->sock, *((ip_addr*) pso->ipr.ip), (int) pso->ipr.port);
 	}
       else if ( errno == EALREADY)
@@ -548,10 +619,12 @@ net_conn_establish_async (__sock_o pso, __net_task task)
 	  char b[1024];
 	  strerror_r (errno, b, sizeof(b));
 	  log (
-	  L_ERR "net_conn_establish: [%d]: %s: %I:%d ",
+	  L_ERR "net_conn_establish_async: [%d]: %s: %I:%d ",
 	       pso->sock, b, *((ip_addr*) pso->ipr.ip), (int) pso->ipr.port);
 
-	  if (pso->flags & F_OPSOCK_RETRY)
+	  if ((pso->flags & F_OPSOCK_RETRY)
+	      && (!pso->policy.max_connect_retries
+		  || pso->counters.con_retries < pso->policy.max_connect_retries))
 	    {
 	      close (pso->sock);
 	      if ((pso->sock = socket (pso->res->ai_family,
@@ -568,7 +641,22 @@ net_conn_establish_async (__sock_o pso, __net_task task)
 		  return -4;
 		}
 
+	      if (pso->flags & F_OPSOCK_BIND)
+		{
+		  struct sockaddr_in localaddr;
+		  localaddr.sin_family = pso->res->ai_family;
+		  localaddr.sin_addr = pso->bind_ip;
+		  localaddr.sin_port = 0;
+
+		  if (bind (pso->sock, (struct sockaddr *) &localaddr,
+			    sizeof(localaddr)) == -1)
+		    {
+		      return -4;
+		    }
+		}
+
 	      pso->timers.l_est_try = (time_t) time (NULL);
+	      pso->counters.con_retries++;
 	    }
 	  else
 	    {
@@ -697,7 +785,8 @@ net_open_listening_socket (char *addr, char *port, __sock_ca args)
 	  return 11;
 	}
 
-      if ((r = ssl_load_server_certs (pso->ctx, args->ssl_cert, args->ssl_key)))
+      if ((r = ssl_load_server_certs (pso->ctx, args->ssl_cert, args->ssl_key,
+				      args->ssl_ca)))
 	{
 	  ERR_print_errors_fp (stderr);
 	  ERR_clear_error ();
@@ -843,7 +932,7 @@ net_destroy_connection (__sock_o so)
 
 	  /*if (so->flags & F_OPSOCK_SSL_KEYCERT_L)
 	   {
-	   SSL_certs_clear(so->ssl);
+	   SSL_certs_clear (so->ssl);
 	   }*/
 
 	  SSL_free (so->ssl);
@@ -907,16 +996,16 @@ net_destroy_connection (__sock_o so)
    free(so->va_p1);
    }*/
 
-  md_g_free (&so->sendq);
+  md_free (&so->sendq);
 
-  md_g_free (&so->init_rc0);
-  md_g_free (&so->init_rc1);
-  md_g_free (&so->init_rc0_ssl);
-  md_g_free (&so->tasks);
-  md_g_free (&so->c_tasks);
-  md_g_free (&so->ct_tasks);
-  md_g_free (&so->t_tasks);
-  md_g_free (&so->t_rcv);
+  md_free (&so->init_rc0);
+  md_free (&so->init_rc1);
+  md_free (&so->init_rc0_ssl);
+  md_free (&so->tasks);
+  md_free (&so->c_tasks);
+  md_free (&so->ct_tasks);
+  md_free (&so->t_tasks);
+  md_free (&so->t_rcv);
 
   so->flags |= F_OPSOCK_DISCARDED;
 
@@ -933,14 +1022,18 @@ int
 net_push_to_sendq (__sock_o pso, void *data, size_t size, uint16_t flags)
 {
 
-  if ((pso->flags & F_OPSOCK_TERM))
+  if (pso->sendq.offset > MAX_NET_SENDQ)
     {
-      return 2;
+      log (L_ERR "net_push_to_sendq: [%d]: max senq exceeded [%u]", pso->sock,
+	   pso->sendq.offset);
+      pso->flags |= F_OPSOCK_TERM;
+      return 1;
     }
 
   __sock_sqp ptr;
   if (NULL == (ptr = md_alloc (&pso->sendq, SSENDQ_PAYLOAD_SIZE, 0, NULL)))
     {
+      log (L_ERR "net_push_to_sendq: [%d]: out of resources", pso->sock);
       pso->flags |= F_OPSOCK_TERM;
       return -1;
     }
@@ -969,7 +1062,7 @@ net_send_direct (__sock_o pso, const void *data, size_t size)
   if (0 != (ret = pso->send0 (pso, (void*) data, size)))
     {
       log (L_ERR
-      "[%d] [%d %d]: net_send_direct: send data failed, payload size: %zd\n",
+      "[%d] [%d %d]: net_send_direct: send data failed, payload size: %d\n",
 	   pso->sock, ret, pso->s_errno, size);
       pso->flags |= F_OPSOCK_TERM;
       return -1;
@@ -1010,7 +1103,7 @@ net_proc_sendq (__sock_o pso)
 	      //ptr = net_proc_sendq_destroy_item(psqp, pso, ptr);
 	      pso->flags |= F_OPSOCK_TERM;
 	      goto end;
-	      case 2:;// Again, this holds up the queue
+	      case 2:;// Again: this holds up the queue
 	      log (L_WARN "[%d]: socket not ready", pso->sock);
 	      goto end;
 	      break;
@@ -1073,12 +1166,6 @@ net_register_task (pmda rt, _net_task_proc proc, void *data, uint16_t flags)
 {
   int ret;
 
-  if (rt->offset == rt->count)
-    {
-      ret = 2;
-      goto exit;
-    }
-
   __net_task task = md_alloc (rt, sizeof(_net_task), 0, NULL);
 
   if ( NULL == task)
@@ -1095,6 +1182,27 @@ net_register_task (pmda rt, _net_task_proc proc, void *data, uint16_t flags)
   exit: ;
 
   return ret;
+}
+
+int
+net_socket_proc_delay (__sock_o pso, __net_task task)
+{
+  time_t t = time (NULL);
+
+  if (!pso->timers.l_delay_proc)
+    {
+      pso->timers.l_delay_proc = t;
+    }
+
+  if (t - pso->timers.l_delay_proc >= pso->policy.socket_proc_delay)
+    {
+      return -2;
+    }
+  else
+    {
+      return -1;
+    }
+
 }
 
 static p_md_obj
@@ -1127,6 +1235,12 @@ net_worker_process_socket (__sock_o pso, p_md_obj ptr, uint32_t flags,
 	  abort ();
 	}
 
+      /*if (pso->parent && (pso->parent->flags & F_OPSOCK_ST_SSL_ACCEPT))
+       {
+       pso->parent->flags ^= F_OPSOCK_ST_SSL_ACCEPT;
+       pso->parent->rcv_cb = pso->parent->rcv_cb_t;
+       }*/
+
       net_pop_rc (pso, &pso->shutdown_rc0);
 
       if (pso->res)
@@ -1134,8 +1248,8 @@ net_worker_process_socket (__sock_o pso, p_md_obj ptr, uint32_t flags,
 	  freeaddrinfo (pso->res);
 	}
 
-      md_g_free (&pso->shutdown_rc0);
-      md_g_free (&pso->shutdown_rc1);
+      md_free (&pso->shutdown_rc0);
+      md_free (&pso->shutdown_rc1);
 
       ptr = md_unlink (pso->host_ctx, ptr);
 
@@ -1504,17 +1618,18 @@ net_socket_init_enforce_policy (__sock_o pso)
 		  "net_socket_init_enforce_policy: [%d] net_enum_sockr failed: [%d]",
 		  pso->sock, dip_sr);
 	      pso->flags |= F_OPSOCK_TERM;
-	      return 2;
+	      return -1;
 	    }
 
 	  if (sc_ret.ret > pso->policy.max_sim_ip)
 	    {
 	      log (
 		  L_WARN
-		  "net_socket_init_enforce_policy: [%d] max_sim limit reached: [%u/%u]",
-		  pso->sock, sc_ret.ret, pso->policy.max_sim_ip);
+		  "net_socket_init_enforce_policy: [%d] max_sim limit reached: [%u/%u] %I",
+		  pso->sock, sc_ret.ret, pso->policy.max_sim_ip,
+		  *((ip_addr*) &pso->ipr.ip));
 	      pso->flags |= F_OPSOCK_TERM;
-	      return 2;
+	      return -1;
 	    }
 	}
 
@@ -1528,7 +1643,7 @@ net_socket_init_enforce_policy (__sock_o pso)
 		  pso->sock, pso->parent->children,
 		  pso->parent->policy.max_connects);
 	      pso->flags |= F_OPSOCK_TERM;
-	      return 2;
+	      return -1;
 	    }
 	}
       break;
@@ -1548,6 +1663,8 @@ net_pop_rc (__sock_o pso, pmda rc)
 
   p_md_obj ptr = rc->pos;
 
+  int ret = 0;
+
   while (ptr)
     {
       __proc_ic_o pic = (__proc_ic_o) ptr->ptr;
@@ -1556,6 +1673,7 @@ net_pop_rc (__sock_o pso, pmda rc)
 	{
 	  if ( pic->call(pso) == -1 )
 	    {
+	      ret = 1;
 	      break;
 	    }
 	}
@@ -1563,7 +1681,7 @@ net_pop_rc (__sock_o pso, pmda rc)
       ptr = ptr->prev;
     }
 
-  return 0;
+  return ret;
 }
 
 int
@@ -1675,9 +1793,8 @@ net_prep_acsock (pmda base, pmda threadr, __sock_o spso, int fd,
 
   if (NULL == (pso = md_alloc (base, sizeof(_sock_o), 0, NULL)))
     {
-      log (L_ERR "net_prep_acsock: out of resources [%llu/%llu]",
-	   (unsigned long long int) base->offset,
-	   (unsigned long long int) base->count);
+      log (L_ERR "net_prep_acsock: out of resources [%llu]",
+	   (unsigned long long int) base->offset);
       spso->status = 23;
       close (fd);
       return NULL;
@@ -1733,14 +1850,14 @@ net_prep_acsock (pmda base, pmda threadr, __sock_o spso, int fd,
       pso->unit_size = spso->unit_size;
     }
 
-  pso->buffer0 = calloc (1, pso->unit_size + 16);
+  pso->buffer0 = calloc (1, pso->unit_size + 2);
   pso->buffer0_len = pso->unit_size;
 
   pso->host_ctx = base;
 
   if (pso->flags & F_OPSOCK_INIT_SENDQ)
     {
-      md_init (&pso->sendq, MAX_NET_SENDQ);
+      md_init (&pso->sendq);
     }
 
   p_md_obj pso_ptr = base->pos;
@@ -1764,11 +1881,10 @@ net_prep_acsock (pmda base, pmda threadr, __sock_o spso, int fd,
       SSL_set_accept_state (pso->ssl);
       SSL_set_read_ahead (pso->ssl, 1);
 
-      spso->rcv_cb_t = spso->rcv_cb;
-      spso->rcv_cb = (_p_s_cb) net_accept_ssl;
-      spso->flags |= F_OPSOCK_ST_SSL_ACCEPT;
-
-      pso->rcv_cb = spso->rcv0;
+      pso->rcv_cb_t = spso->rcv0;
+      pso->rcv_cb = (_p_s_cb) net_accept_ssl;
+      pso->flags |= F_OPSOCK_ST_SSL_ACCEPT;
+      //pso->flags |= F_OPSOCK_SSL_ACIP;
 
       //pso->rcv_cb_t = spso->rcv0;
 
@@ -1783,9 +1899,9 @@ net_prep_acsock (pmda base, pmda threadr, __sock_o spso, int fd,
 
     }
 
-  pso->flags |= F_OPSOCK_ESTABLISHED;
-
   net_pop_rc (pso, &pso->init_rc0);
+
+  pso->flags |= F_OPSOCK_ESTABLISHED;
 
   return pso;
 }
@@ -1926,6 +2042,13 @@ net_recv (__sock_o pso, pmda base, pmda threadr, void *data)
   pso->counters.b_read += rcvd;
   pso->counters.t_read += rcvd;
 
+  uint8_t *end = data + pso->counters.b_read;
+
+  if (end[0] != 0x0)
+    {
+      end[0] = 0x0;
+    }
+
   fin: ;
 
   if (net_proc_tasks (pso, &pso->t_rcv))
@@ -2019,6 +2142,13 @@ net_recv_ssl (__sock_o pso, pmda base, pmda threadr, void *data)
   pso->timers.last_act = time (NULL);
   pso->timers.l_rx = pso->timers.last_act;
 
+  uint8_t *end = data + pso->counters.b_read;
+
+  if (end[0] != 0x0)
+    {
+      end[0] = 0x0;
+    }
+
   if (net_proc_tasks (pso, &pso->t_rcv))
     {
       return 7;
@@ -2030,10 +2160,8 @@ net_recv_ssl (__sock_o pso, pmda base, pmda threadr, void *data)
 #define T_NET_ACCEPT_SSL        (time_t) 4
 
 int
-net_accept_ssl (__sock_o spso, pmda base, pmda threadr, void *data)
+net_accept_ssl (__sock_o pso, pmda base, pmda threadr, void *data)
 {
-
-  __sock_o pso = (__sock_o ) spso->cc;
 
   int ret;
 
@@ -2045,9 +2173,6 @@ net_accept_ssl (__sock_o spso, pmda base, pmda threadr, void *data)
 
       if (ssl_err == SSL_ERROR_WANT_READ || ssl_err == SSL_ERROR_WANT_WRITE)
 	{
-	  log (L_DEBUG
-	  "net_accept_ssl: [%d]: SSL_accept not satisfied: [%d] [%d]",
-	       pso->sock, ret, ssl_err);
 
 	  if (!(pso->timers.flags & F_ST_MISC00_ACT))
 	    {
@@ -2074,7 +2199,7 @@ net_accept_ssl (__sock_o spso, pmda base, pmda threadr, void *data)
       if (ssl_err == SSL_ERROR_SYSCALL && ret == -1)
 	{
 	  char err_buf[1024];
-	  log (L_ERR "SSL_accept: [%d]: accept: [%d]: [%s]", spso->sock,
+	  log (L_ERR "SSL_accept: [%d]: accept: [%d]: [%s]", pso->sock,
 	  errno,
 	       strerror_r (errno, err_buf, sizeof(err_buf)));
 	}
@@ -2092,6 +2217,8 @@ net_accept_ssl (__sock_o spso, pmda base, pmda threadr, void *data)
 
       pso->flags |= F_OPSOCK_TERM | F_OPSOCK_SKIP_SSL_SD;
 
+      return 4;
+
     }
 
   if (pso->timers.flags & F_ST_MISC00_ACT)
@@ -2102,44 +2229,30 @@ net_accept_ssl (__sock_o spso, pmda base, pmda threadr, void *data)
   pso->timers.misc00 = (time_t) 0;
   pso->timers.last_act = time (NULL);
   pso->timers.l_rx = pso->timers.last_act;
-  spso->timers.last_act = time (NULL);
+  //spso->timers.last_act = time (NULL);
   //pso->rcv_cb = pso->rcv_cb_t;
+
+  //pso->limits.sock_timeout = spso->policy.idle_timeout;
+
+  if (pso->flags & F_OPSOCK_ST_SSL_ACCEPT)
+    {
+      pso->flags ^= F_OPSOCK_ST_SSL_ACCEPT;
+    }
+
+  pso->rcv_cb = pso->rcv_cb_t;
 
   BIO_set_buffer_size(SSL_get_rbio (pso->ssl), 16384);
   BIO_set_buffer_size(SSL_get_wbio (pso->ssl), 16384);
 
-  //pso->limits.sock_timeout = spso->policy.idle_timeout;
-
-  if (spso->flags & F_OPSOCK_ST_SSL_ACCEPT)
-    {
-      spso->flags ^= F_OPSOCK_ST_SSL_ACCEPT;
-    }
-
-  if (!(pso->flags & F_OPSOCK_TERM))
-    {
-      int eb;
-
-      SSL_CIPHER_get_bits (SSL_get_current_cipher (pso->ssl), &eb);
-
-      char cd[255];
-
-      SSL_CIPHER_description (SSL_get_current_cipher (pso->ssl), cd,
-			      sizeof(cd));
-
-      log (L_DEBUG "SSL_accept: %d, %s (%d) - %s", pso->sock,
-	   SSL_get_cipher(pso->ssl), eb,
-	   SSL_CIPHER_get_version (SSL_get_current_cipher (pso->ssl)));
-
-      log (L_DEBUG "SSL_CIPHER_description: %d, %s", pso->sock, cd);
-
-      ssl_show_client_certs (pso, pso->ssl);
-    }
-
-  spso->rcv_cb = spso->rcv_cb_t;
+  announce_ssl_connect_event (pso, "SSL_accept");
+  ssl_show_client_certs (pso, pso->ssl);
 
   //pso->flags |= F_OPSOCK_ACT;
+  //pso->flags ^= pso->flags & F_OPSOCK_SSL_ACIP;
 
   net_pop_rc (pso, &pso->init_rc0_ssl);
+
+  __sock_o spso = pso->parent;
 
   ret = net_assign_sock (base, pso, spso);
 
@@ -2165,9 +2278,6 @@ net_connect_ssl (__sock_o pso, pmda base, pmda threadr, void *data)
 
       if (ssl_err == SSL_ERROR_WANT_READ || ssl_err == SSL_ERROR_WANT_WRITE)
 	{
-	  log (L_DEBUG
-	  "net_connect_ssl: [%d]: SSL_connect not satisfied: [%d] [%d]",
-	       pso->sock, ret, ssl_err);
 
 	  if (!(pso->timers.flags & F_ST_MISC00_ACT))
 	    {
@@ -2202,6 +2312,8 @@ net_connect_ssl (__sock_o pso, pmda base, pmda threadr, void *data)
 
       pso->flags |= F_OPSOCK_TERM | F_OPSOCK_SKIP_SSL_SD;
 
+      return 4;
+
     }
 
   if (pso->timers.flags & F_ST_MISC00_ACT)
@@ -2217,28 +2329,8 @@ net_connect_ssl (__sock_o pso, pmda base, pmda threadr, void *data)
   BIO_set_buffer_size(SSL_get_rbio (pso->ssl), 16384);
   BIO_set_buffer_size(SSL_get_wbio (pso->ssl), 16384);
 
-  if (!(pso->flags & F_OPSOCK_TERM))
-    {
-      int eb;
-
-      SSL_CIPHER_get_bits (SSL_get_current_cipher (pso->ssl), &eb);
-
-      char cd[255];
-
-      SSL_CIPHER_description (SSL_get_current_cipher (pso->ssl), cd,
-			      sizeof(cd));
-
-      log (L_DEBUG "SSL_connect: %d, %s (%d) - %s", pso->sock,
-	   SSL_get_cipher(pso->ssl), eb,
-	   SSL_CIPHER_get_version (SSL_get_current_cipher (pso->ssl)));
-
-      log (L_DEBUG "SSL_CIPHER_description: %d, %s", pso->sock, cd);
-    }
-
-  /*if (pso->flags & F_OPSOCK_ST_SSL_CONNECT)
-   {
-   pso->flags ^= F_OPSOCK_ST_SSL_CONNECT;
-   }*/
+  announce_ssl_connect_event (pso, "SSL_connect");
+  ssl_show_client_certs (pso, pso->ssl);
 
   pso->flags |= F_OPSOCK_PROC_READY;
 
@@ -2353,10 +2445,6 @@ net_ssend_ssl_b (__sock_o pso, void *data, size_t length)
       pso->s_errno = SSL_get_error (pso->ssl, ret);
       ERR_print_errors_fp (stderr);
       ERR_clear_error ();
-
-      log (L_DEBUG
-      "net_ssend_ssl_b: [%d]: SSL_write not satisfied: [%d] [%d]",
-	   pso->sock, ret, pso->s_errno);
 
       if (!(pso->s_errno == SSL_ERROR_WANT_READ
 	  || pso->s_errno == SSL_ERROR_WANT_WRITE))
@@ -2515,3 +2603,38 @@ net_ssend (__sock_o pso, void *data, size_t length)
 
  */
 
+void
+net_ca_free (__sock_ca ca)
+{
+  md_free (&ca->init_rc0);
+  md_free (&ca->init_rc1);
+  md_free (&ca->shutdown_rc0);
+  md_free (&ca->shutdown_rc1);
+  md_free (&ca->c_tasks);
+  md_free (&ca->ct_tasks);
+  md_free (&ca->t_tasks);
+  md_free (&ca->t_rcv);
+  md_free (&ca->c_pre_tasks);
+}
+
+void
+net_ca_init (__sock_ca ca)
+{
+  md_init (&ca->init_rc0);
+  md_init (&ca->init_rc1);
+  md_init (&ca->shutdown_rc0);
+  md_init (&ca->shutdown_rc1);
+  md_init (&ca->c_tasks);
+  md_init (&ca->ct_tasks);
+  md_init (&ca->t_tasks);
+  md_init (&ca->t_rcv);
+  md_init (&ca->c_pre_tasks);
+}
+
+__sock_ca
+net_ca_new (pmda base)
+{
+  __sock_ca ca = md_alloc (base, sizeof(_sock_ca), 0, 0);
+  net_ca_init (ca);
+  return ca;
+}

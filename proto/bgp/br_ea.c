@@ -14,8 +14,6 @@
 
 #include "br_ea.h"
 
-
-
 struct bgp_br_route *
 br_route_add (struct proto *p, gtable_t *routes, struct static_route *r,
 	      base_ea_payload *pl, size_t pl_size)
@@ -68,6 +66,8 @@ br_route_add (struct proto *p, gtable_t *routes, struct static_route *r,
       bbr->pfx.addr = r->net;
       bbr->pfx.len = r->masklen;
 
+      n->n.kflags |= F_FN_ALWAYS_PROPAGATE | F_FN_LOCORIGIN;
+
       rte_update_int (p, n, n->routes);
 
       return bbr;
@@ -108,7 +108,7 @@ br_trigger_update (struct proto *p, net *n)
 }
 
 base_ea_payload *
-br_get_route_payload (struct proto *p, struct prefix *pfx)
+br_get_route_payload (struct proto *p, size_t pl_size, struct prefix *pfx)
 {
   net *n = net_find (p->table, pfx->addr, pfx->len);
 
@@ -117,35 +117,38 @@ br_get_route_payload (struct proto *p, struct prefix *pfx)
       return NULL;
     }
 
-  return br_get_net_payload (p, n);
+  return br_get_net_payload (pl_size, n, n->routes);
 }
 
 base_ea_payload *
-br_get_net_payload (struct proto *p, net *n)
+br_get_net_payload (size_t pl_size, net *n, struct rte *new)
 {
-  if (!n->routes)
+  if (!new)
     {
       return NULL;
     }
 
-  eattr *e = ea_find (n->routes->attrs->eattrs, EA_CODE(EAP_BGP, BA_COMMUNITY));
+  eattr *e = ea_find (new->attrs->eattrs, EA_CODE(EAP_BGP, BA_COMMUNITY));
 
   if (!e)
     {
       return NULL;
     }
 
-  if (e->u.ptr->length < sizeof(base_ea_payload) + sizeof(base_ea_head))
+  size_t l_size = pl_size + sizeof(base_ea_payload);
+
+  if (!(e->u.ptr->length == l_size
+      || e->u.ptr->length == l_size + sizeof(base_ea_head)))
     {
       return NULL;
     }
 
-  base_ea_payload* _eap = (base_ea_payload*) e->u.ptr->data;
+  /*base_ea_payload* _eap = (base_ea_payload*) e->u.ptr->data;
 
   if (!(_eap->server_flags.u1 == 255 && _eap->server_flags.u2 == 255))
     {
       return NULL;
-    }
+    }*/
 
   base_ea_payload* eap = (base_ea_payload*) (e->u.ptr->data
       + sizeof(base_ea_head));
@@ -156,11 +159,9 @@ br_get_net_payload (struct proto *p, net *n)
 void
 br_route_remove (gtable_t *routes, struct bgp_br_route * bbr)
 {
-
   struct proto *p = brc_st_proto->c.proto;
 
   memset (&bbr->n->n.ea_cache, 0x0, sizeof(irc_ea_payload));
-
 
   rte_update (p, bbr->n, NULL);
 

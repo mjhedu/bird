@@ -24,9 +24,9 @@ br_net_exists (struct proto *p, ip_addr *ip, int masklen);
 
 
 base_ea_payload *
-br_get_route_payload (struct proto *p, struct prefix *pfx);
+br_get_route_payload (struct proto *p, size_t pl_size, struct prefix *pfx);
 base_ea_payload *
-br_get_net_payload (struct proto *p, net *n);
+br_get_net_payload (size_t, net *n, struct rte *rte);
 void
 br_trigger_update_route (struct proto *p, struct prefix *pfx);
 void

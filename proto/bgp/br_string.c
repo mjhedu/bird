@@ -19,10 +19,6 @@ string_split (char *line, char dl, pmda output_t)
 
   for (i = 0, p = 0, c = 0; i <= llen; i++)
     {
-      if (c == output_t->count)
-	{
-	  break;
-	}
       while (line[i] == dl && line[i])
 	i++;
       p = i;
@@ -82,4 +78,15 @@ md_string_join (pmda input_t, char dl, char *out, size_t max)
   out[0] = 0x0;
 
   return base;
+}
+
+#include <ctype.h>
+
+void
+str_to_lower (char* str)
+{
+  for (; str[0]; str++)
+    {
+      str[0] = tolower (str[0]);
+    }
 }

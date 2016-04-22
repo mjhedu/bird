@@ -274,8 +274,8 @@ void proto_cmd_debug(struct proto *, unsigned int, int);
 void proto_cmd_mrtdump(struct proto *, unsigned int, int);
 
 void proto_apply_cmd(struct proto_spec ps, void (* cmd)(struct proto *, unsigned int, int), int restricted, unsigned int arg);
-void
-proto_enum (void
+int
+proto_enum (int
 (*cmd) (struct proto *, unsigned int, int, void *),
 	    unsigned int arg, void *data);
 struct proto *proto_get_named(struct symbol *, struct protocol *);

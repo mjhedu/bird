@@ -19,9 +19,14 @@ struct entry_s
 
 typedef struct entry_s entry_t;
 
+#define F_HT_FREEVAL_ONCE	(uint8_t) 1
+
+#include <stdint.h>
+
 struct hashtable_s
 {
   size_t size;
+  uint8_t flags;
   struct entry_s **table;
 };
 

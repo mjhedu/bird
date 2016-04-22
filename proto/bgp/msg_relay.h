@@ -63,8 +63,13 @@ dsp_lookup (struct mrl_dspobj *r, uint8_t code);
 struct mrl_dspobj dsp_table[UCHAR_MAX];
 
 int
-net_baseline_relay_dispatcher (__sock_o pso, mrl_dpkt *pkt);
+net_baseline_relay_forwarder (__sock_o pso, mrl_dpkt *pkt);
 struct rte *
 mrl_baseline_lookup_best_path (net *n);
+
+void
+mrl_init_ca_default (__sock_ca ca);
+void
+mrl_fill_ca_default (__sock_ca ca);
 
 #endif /* PROTO_BGP_MSG_RELAY_H_ */

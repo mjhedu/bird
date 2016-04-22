@@ -3098,13 +3098,13 @@ if test "$ac_test_CFLAGS" = set; then
   CFLAGS=$ac_save_CFLAGS
 elif test $ac_cv_prog_cc_g = yes; then
   if test "$GCC" = yes; then
-    CFLAGS="-g" #-O2
+    CFLAGS="-g"
   else
     CFLAGS="-g"
   fi
 else
   if test "$GCC" = yes; then
-    CFLAGS= #"-O2"
+    CFLAGS=""
   else
     CFLAGS=
   fi
@@ -3893,6 +3893,8 @@ if test "$enable_pthreads" = try ; then
 	esac
 fi
 
+LDFLAGS="$LDFLAGS -lssl -lcrypto"
+
 if test "$enable_pthreads" != no ; then
 
   bird_tmp_cflags="$CFLAGS"
@@ -3979,6 +3981,38 @@ $as_echo "$bird_cv_c_option_wno_pointer_sign" >&6; }
 
   bird_tmp_cflags="$CFLAGS"
 
+  CFLAGS=" -Wno-unused-variable"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether CC supports -Wno-unused-variable" >&5
+$as_echo_n "checking whether CC supports -Wno-unused-variable... " >&6; }
+if ${bird_cv_c_option_wno_unused_variable+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  bird_cv_c_option_wno_unused_variable=yes
+else
+  bird_cv_c_option_wno_unused_variable=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $bird_cv_c_option_wno_unused_variable" >&5
+$as_echo "$bird_cv_c_option_wno_unused_variable" >&6; }
+
+  CFLAGS="$bird_tmp_cflags"
+
+
+  bird_tmp_cflags="$CFLAGS"
+
   CFLAGS=" -fno-strict-aliasing"
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether CC supports -fno-strict-aliasing" >&5
 $as_echo_n "checking whether CC supports -fno-strict-aliasing... " >&6; }
@@ -4041,10 +4075,15 @@ $as_echo "$bird_cv_c_option_fno_strict_overflow" >&6; }
   CFLAGS="$bird_tmp_cflags"
 
 
-	CFLAGS="$CFLAGS -Wall -Wstrict-prototypes -Wno-parentheses"
+	CFLAGS="$CFLAGS -Wall -Wstrict-prototypes -Wno-parentheses -Wno-unused-variable"
 
   if test "$bird_cv_c_option_wno_pointer_sign" = yes ; then
     CFLAGS="$CFLAGS -Wno-pointer-sign"
+  fi
+
+
+  if test "$bird_cv_c_option_wno_unused_variable" = yes ; then
+    CFLAGS="$CFLAGS -Wno-unused-variable"
   fi
 
 
@@ -4056,6 +4095,7 @@ $as_echo "$bird_cv_c_option_fno_strict_overflow" >&6; }
   if test "$bird_cv_c_option_fno_strict_overflow" = yes ; then
     CFLAGS="$CFLAGS -fno-strict-overflow"
   fi
+
 
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking CFLAGS" >&5
@@ -4530,11 +4570,9 @@ else
 	case "$ip:$host_os" in
 		ipv6:linux*)	sysdesc=linux-v6
 				default_iproutedir="/etc/iproute2"
-				LDFLAGS="$LDFLAGS -lssl -lcrypto"
 				;;
 		ipv4:linux*)	sysdesc=linux
 				default_iproutedir="/etc/iproute2"
-				LDFLAGS="$LDFLAGS -lssl -lcrypto"
 				;;
 		ipv6:netbsd*)	sysdesc=bsd-v6
 				CPPFLAGS="$CPPFLAGS -I/usr/pkg/include"
@@ -4594,7 +4632,7 @@ fi
 
 
 
-all_protocols="$proto_bfd bgp ospf pipe $proto_radv rip static"
+all_protocols="bgp pipe static"
 all_protocols=`echo $all_protocols | sed 's/ /,/g'`
 
 if test "$with_protocols" = all ; then

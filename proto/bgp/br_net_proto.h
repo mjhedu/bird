@@ -11,6 +11,7 @@
 
 #define PROT_CODE_BASELINE_PROTO_VERSION	0x76
 #define PROT_CODE_BASELINE_KEEPALIVE            0x2
+#define PROT_CODE_BASELINE_KEEPALIVE_PONG	0x3
 
 #define BASELINE_PROTOCOL_VERSION_MAJOR		0
 #define BASELINE_PROTOCOL_VERSION_MINOR		1
@@ -60,7 +61,7 @@ typedef struct ___baseline_proto_header
 
 #include "brc_memory.h"
 
-mda pc_a;
+md_obj pc_a[UCHAR_MAX];
 
 #include "brc_net_io.h"
 

@@ -18,4 +18,6 @@ br_main (void);
 void
 net_io_handler (int signal);
 
+sigset_t default_set;
+
 #endif /* PROTO_BGP_BR_MAIN_H_ */

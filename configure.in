@@ -92,6 +92,8 @@ if test "$enable_pthreads" = try ; then
 	esac
 fi
 
+LDFLAGS="$LDFLAGS -lssl -lcrypto"
+
 if test "$enable_pthreads" != no ; then
 	BIRD_CHECK_PTHREADS
 
@@ -111,13 +113,16 @@ fi
 
 if test "$bird_cflags_default" = yes ; then
 	BIRD_CHECK_GCC_OPTION(bird_cv_c_option_wno_pointer_sign, -Wno-pointer-sign, -Wall)
+	BIRD_CHECK_GCC_OPTION(bird_cv_c_option_wno_unused_variable, -Wno-unused-variable)
 	BIRD_CHECK_GCC_OPTION(bird_cv_c_option_fno_strict_aliasing, -fno-strict-aliasing)
 	BIRD_CHECK_GCC_OPTION(bird_cv_c_option_fno_strict_overflow, -fno-strict-overflow)
 
-	CFLAGS="$CFLAGS -Wall -Wstrict-prototypes -Wno-parentheses"
+	CFLAGS="$CFLAGS -Wall -Wstrict-prototypes -Wno-parentheses -Wno-unused-variable"
 	BIRD_ADD_GCC_OPTION(bird_cv_c_option_wno_pointer_sign, -Wno-pointer-sign)
+	BIRD_ADD_GCC_OPTION(bird_cv_c_option_wno_unused_variable, -Wno-unused-variable)
 	BIRD_ADD_GCC_OPTION(bird_cv_c_option_fno_strict_aliasing, -fno-strict-aliasing)
 	BIRD_ADD_GCC_OPTION(bird_cv_c_option_fno_strict_overflow, -fno-strict-overflow)
+
 fi
 AC_MSG_CHECKING([CFLAGS])
 AC_MSG_RESULT($CFLAGS)
@@ -205,7 +210,7 @@ fi
 
 AC_SUBST(iproutedir)
 
-all_protocols="$proto_bfd bgp ospf pipe $proto_radv rip static"
+all_protocols="bgp pipe static"
 all_protocols=`echo $all_protocols | sed 's/ /,/g'`
 
 if test "$with_protocols" = all ; then

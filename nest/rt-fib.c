@@ -172,6 +172,18 @@ fib_find(struct fib *f, ip_addr *a, int len)
   return e;
 }
 
+void *
+fib_find_rng(struct fib *f, ip_addr *a, int l, int h)
+{
+  struct fib_node *e = f->hash_table[fib_hash(f, a)];
+
+  while (e && (!(e->pxlen >= (byte)l && e->pxlen <= (byte)h) ||
+	  !ipa_equal(*a, e->prefix)))
+    e = e->next;
+  return e;
+}
+
+
 /*
 int
 fib_histogram(struct fib *f)
@@ -238,6 +250,7 @@ fib_get(struct fib *f, ip_addr *a, int len)
   e->pxlen = len;
   e->next = *ee;
   e->uid = uid;
+  memset(&e->ea_cache, 0x0, sizeof(e->ea_cache));
   *ee = e;
   e->readers = NULL;
   f->init(e);

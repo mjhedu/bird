@@ -38,6 +38,7 @@
 #define F_OPSOCK_BRK            	((uint32_t)1 << 28)
 #define F_OPSOCK_ESTABLISHED           	((uint32_t)1 << 29)
 #define F_OPSOCK_RETRY           	((uint32_t)1 << 30)
+#define F_OPSOCK_BIND           	((uint32_t)1 << 31)
 
 #define F_ST_MISC00_ACT         ((uint32_t)1 << 1)
 #define F_ST_MISC02_ACT         ((uint32_t)1 << 3)
@@ -64,7 +65,7 @@
 #define SOCKET_STATUS_SKIP_RX_PROC	(uint32_t)1 << 16
 #define SOCKET_STATUS_PFAIL		(uint32_t)1 << 18
 
-#define MAX_NET_SENDQ			8192 * 32
+#define MAX_NET_SENDQ			5000000
 
 #include <stdio.h>
 
@@ -80,13 +81,13 @@ typedef int
 
 typedef struct __sock_counters
 {
-  ssize_t b_read, t_read, l_read, session_read, session_write, total_write;
+  ssize_t b_read, t_read, l_read, session_read, session_write, total_write, con_retries;
 } _sock_c;
 
 typedef struct __sock_timers
 {
   time_t last_act, last_proc, l_ping, l_rx, l_tx, misc00, misc01, misc02,
-      misc03, l_est_try;
+      misc03, l_est_try, l_delay_proc;
   uint32_t flags;
 } _sock_tm;
 
@@ -97,11 +98,12 @@ typedef struct __sock_timeouts
 
 typedef struct ___sock_policy
 {
-  uint32_t max_sim_ip, max_connects;
+  uint32_t max_sim_ip, max_connects, max_connect_retries;
   uint32_t max_bps_in, max_bps_out;
   time_t idle_timeout, listener_idle_timeout, connect_timeout, accept_timeout,
       close_timeout, ssl_accept_timeout, ssl_connect_timeout, send_timeout;
   time_t connect_retries, connect_retry_timeout;
+  time_t socket_proc_delay;
   uint8_t mode;
   int ssl_verify;
 } _net_sp, *__net_sp;
@@ -129,6 +131,8 @@ typedef struct ___proc_ic_o
   _t_rcall call;
   uint32_t flags;
 } _proc_ic_o, *__proc_ic_o;
+
+#include <sys/socket.h>
 
 typedef struct ___sock_o
 {
@@ -172,6 +176,7 @@ typedef struct ___sock_o
   pthread_t thread;
   mda tasks, c_tasks, t_tasks, ct_tasks, c_pre_tasks;
   mda t_rcv;
+  struct in_addr bind_ip;
 } _sock_o, *__sock_o;
 
 typedef struct ___net_task
@@ -219,6 +224,8 @@ typedef struct ___sock_create_args
   pmda socket_register, socket_register_ac, thread_register;
   char *ssl_cert;
   char *ssl_key;
+  char *ssl_ca;
+  char *ssl_cipher_list;
   ssize_t unit_size;
   void *st_p0;
   char b0[4096];
@@ -234,6 +241,7 @@ typedef struct ___sock_create_args
   mda shutdown_rc0, shutdown_rc1;
   _nn_2x64 opt0;
   _ipr ipr00;
+  struct in_addr bind_ip;
   int ref_id;
   int
   (*scall) (char *addr, char *port, struct ___sock_create_args *args);
@@ -255,6 +263,9 @@ typedef struct ___sock_create_args
 
 #endif
 
+int
+net_socket_proc_delay (__sock_o pso, __net_task task);
+
 void
 ssl_init (void);
 void
@@ -264,7 +275,7 @@ ssl_init_ctx_server (__sock_o pso);
 SSL_CTX*
 ssl_init_ctx_client (__sock_o pso);
 int
-ssl_load_server_certs (SSL_CTX* ctx, char* cert_file, char* key_file);
+ssl_load_server_certs (SSL_CTX* ctx, char* cert_file, char* key_file, char *ca_file);
 
 int
 net_open_connection (char *addr, char *port, __sock_ca args);
@@ -303,6 +314,13 @@ int
 net_ssend_ssl (__sock_o pso, void *data, size_t length);
 int
 net_ssend (__sock_o pso, void *data, size_t length);
+
+void
+net_ca_free (__sock_ca ca);
+void
+net_ca_init (__sock_ca ca);
+__sock_ca
+net_ca_new (pmda base);
 
 int
 net_addr_to_ipr (__sock_o pso, __ipr out);

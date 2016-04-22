@@ -52,12 +52,13 @@ get_passwords(void)
 }
 
 #define DIRECT_CFG ((struct rt_dev_config *) this_proto)
+#define IRC_COPT ((_sock_ca *)_icf_global.binds.pos->ptr)
 
 CF_DECLS
 
 CF_KEYWORDS(HOOK, CONN, INBOUND, FAIL, LOAD, PRE, POST, SHUTDOWN)
 CF_KEYWORDS(LINK, LATENCY, BANDWIDTH, SECURITY)
-CF_KEYWORDS(IRC, PREFIX, HOSTNAME, RELAY)
+CF_KEYWORDS(IRC, SERVER, PREFIX, HOSTNAME, RELAY, NETNAME, SECURE, SSLKEY, SSLCERT, SSLCA, SSLCIPHERS, VERIFY)
 
 CF_KEYWORDS(ROUTER, ID, PROTOCOL, TEMPLATE, PREFERENCE, DISABLED, DEBUG, ALL, OFF, DIRECT)
 CF_KEYWORDS(INTERFACE, IMPORT, EXPORT, FILTER, NONE, TABLE, STATES, ROUTES, FILTERS)
@@ -83,7 +84,7 @@ CF_ENUM(T_ENUM_ROA, ROA_, UNKNOWN, VALID, INVALID)
 %type <ro> roa_args
 %type <rot> roa_table_arg
 %type <sd> sym_args
-%type <i> proto_start echo_mask echo_size debug_mask debug_list debug_flag mrtdump_mask mrtdump_list mrtdump_flag export_mode roa_mode limit_action tab_sorted tos
+%type <i> proto_start echo_mask echo_size debug_mask debug_list debug_flag mrtdump_mask mrtdump_list mrtdump_flag export_mode roa_mode limit_action tab_sorted
 %type <ps> proto_patt proto_patt2
 %type <g> limit_spec
 
@@ -299,8 +300,6 @@ iface_patt_list:
  | iface_patt_list ',' iface_patt_node
  ;
 
-/* For name/mask-only iface patterns */
-iface_patt_list_nopx: iface_patt_list { iface_patt_check(); }
 
 iface_patt_init: {
    /* Generic this_ipatt init */
@@ -313,10 +312,6 @@ iface_patt:
    iface_patt_init iface_patt_list
  ;
 
-tos:
-   CLASS expr { $$ = $2 & 0xfc;        if (($2 < 0) || ($2 > 255)) cf_error("TX class must be in range 0-255"); }
- | DSCP expr  { $$ = ($2 & 0x3f) << 2; if (($2 < 0) || ($2 > 63))  cf_error("TX DSCP must be in range 0-63"); }
- ;
 
 /* Direct device route protocol */
 
@@ -388,47 +383,7 @@ mrtdump_flag:
 
 /* Password lists */
 
-password_list:
-   PASSWORDS '{' password_items '}'
- | password_item
-;
 
-password_items: 
-    /* empty */
-  | password_item ';' password_items
-;
-
-password_item:
-    password_item_begin '{' password_item_params '}'
-  | password_item_begin
-;
-
-password_item_begin:
-   PASSWORD text {
-     if (!this_p_list) {
-     	this_p_list = cfg_alloc(sizeof(list));
-     	init_list(this_p_list);
-        password_id = 1;
-     }
-     this_p_item = cfg_alloc(sizeof (struct password_item));
-     this_p_item->password = $2;
-     this_p_item->genfrom = 0;
-     this_p_item->gento = TIME_INFINITY;
-     this_p_item->accfrom = 0;
-     this_p_item->accto = TIME_INFINITY;
-     this_p_item->id = password_id++;
-     add_tail(this_p_list, &this_p_item->n);
-   }
-;
-
-password_item_params:
-   /* empty */ { } 
- | GENERATE FROM datetime ';' password_item_params { this_p_item->genfrom = $3; }
- | GENERATE TO datetime ';' password_item_params { this_p_item->gento = $3; }
- | ACCEPT FROM datetime ';' password_item_params { this_p_item->accfrom = $3; }
- | ACCEPT TO datetime ';' password_item_params { this_p_item->accto = $3; }
- | ID expr ';' password_item_params { this_p_item->id = $2; if ($2 <= 0) cf_error("Password ID has to be greated than zero."); }
- ;
 
 CF_ADDTO(conf, cfhooks)
  
@@ -447,30 +402,65 @@ cfhooks:
 
 
 CF_ADDTO(conf, irc_proto '}')
- 
+
 
 irc_start: IRC {
      memset(&_icf_global, 0x0, sizeof(_icf_global));
      _icf_global.hostname = "irc.bgp.relay";
+     _icf_global.listen_port = 6667;
+     _icf_global.ca_relay.ipr00.port = 11079;
+     md_init(&_icf_global.binds);
    }
  ;
 
 irc_proto:
 	irc_start '{'
- | irc_proto PREFIX prefix ';' { _icf_global.pfx = $3; }
+ | irc_proto PREFIX prefix ';' { _icf_global.pfx = $3; _icf_global.max_hosts = UINT32_MAX >> _icf_global.pfx.len; }
  | irc_proto HOSTNAME text ';'  { _icf_global.hostname = $3; }
- | irc_proto LISTEN irc_listen_opts ';'
+ | irc_proto NETNAME text ';'  { _icf_global.netname = $3; }
+ | irc_proto irc_server_opts '}' ';'
  | irc_proto RELAY irc_relay_listen_opts ';'
+ | irc_proto RELAY SSLKEY text ';' { _icf_global.ca_relay.ssl_key = $4; }
+ | irc_proto RELAY SSLCERT text ';' { _icf_global.ca_relay.ssl_key = $4; }
+ | irc_proto SSLKEY text ';' { _icf_global.default_ssl_key = $3; }
+ | irc_proto SSLCERT text ';' { _icf_global.default_ssl_cert = $3; }
+ | irc_proto SSLCA text ';' { _icf_global.default_ssl_ca = $3; }
+ | irc_proto SSLCIPHERS text ';' { _icf_global.default_ssl_cipher_list = $3; }
 ;
 
-irc_listen_opts:
-   /* Nothing */
- | irc_listen_opts irc_listen_opt
+irc_serveropt_start: SERVER {		
+		md_alloc(&_icf_global.binds,sizeof(_sock_ca),0,NULL);
+	}
+  ;
+  
+irc_server_opts:   
+	irc_serveropt_start '{'
+ | irc_server_opts LISTEN rl_listen_opts ';'
+ | irc_server_opts SECURE ';' { IRC_COPT->flags |= F_OPSOCK_SSL; }
+ | irc_server_opts SSLKEY text ';' { IRC_COPT->ssl_key = $3; }
+ | irc_server_opts SSLCERT text ';' { IRC_COPT->ssl_cert = $3; }
+ | irc_server_opts SSLCA text ';' { IRC_COPT->ssl_ca = $3; }
+
+;
+
+rl_listen_opts:   
+	/* nothing */
+ | rl_listen_opts rl_listen_opt
  ;
 
-irc_listen_opt: 
-   ADDRESS ipa { _icf_global.listen_add = $2; }
- | PORT expr { _icf_global.listen_port = $2; }
+rl_listen_opt: 
+  ADDRESS ipa {    		
+   		*((ip_addr*)IRC_COPT->ipr00.ip) = $2 ;
+   	}
+ | PORT expr { 
+ 		IRC_COPT->ipr00.port = (uint16_t) $2;
+ 	}
+ | SECURE { 
+ 		IRC_COPT->flags |= F_OPSOCK_SSL;
+ 	}
+ | VERIFY expr { 
+ 		IRC_COPT->policy.ssl_verify = $2;
+ 	}
  ;
  
  irc_relay_listen_opts:
@@ -480,8 +470,10 @@ irc_listen_opt:
  
  
 irc_relay_listen_opt: 
-   ADDRESS ipa { _icf_global.relay_listen_add = $2; }
- | PORT expr { _icf_global.relay_listen_port = $2; }
+   ADDRESS ipa { *((ip_addr*)_icf_global.ca_relay.ipr00.ip) = $2 ; }
+ | PORT expr { _icf_global.ca_relay.ipr00.port = (uint16_t)$2; }
+ | SECURE { _icf_global.ca_relay.flags |= F_OPSOCK_SSL; }
+ | VERIFY expr { _icf_global.ca_relay.policy.ssl_verify = $2; }
  ;
  
 
