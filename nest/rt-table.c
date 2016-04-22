@@ -683,7 +683,7 @@ rte_recalculate(struct announce_hook *ah, net *net, rte *new, ea_list *tmpa, str
 	      return;
 	    }
 
-	  if ( 1==0 && !(net->n.kflags & F_FN_ALWAYS_PROPAGATE) && new &&  rte_same(old, new))
+	  if ( !(net->n.kflags & F_FN_ALWAYS_PROPAGATE) && new &&  rte_same(old, new))
 	    {
 	      /* No changes, ignore the new route */
 
