@@ -1658,8 +1658,7 @@ C_PRELOAD(irc_c_privmsg, !=1)
       IRC_C_ERRQUIT_M(1, "message too large")
     }
 
-  int ret = irc_relay_message (pso, r->cmd, subject,
-			       r->trailer);
+  int ret = irc_relay_message (pso, r->cmd, subject, r->trailer);
 
   if (ret == 1)
     {
@@ -2533,8 +2532,7 @@ irc_relay_send_pkt_out (__sock_o origin, mrl_dpkt *pkt, net *n)
 }
 
 int
-irc_relay_message (__sock_o origin, char *code, char *target,
-		   char *message)
+irc_relay_message (__sock_o origin, char *code, char *target, char *message)
 {
 
   mrl_dpkt *pkt = calloc (
@@ -2585,6 +2583,14 @@ irc_relay_message (__sock_o origin, char *code, char *target,
 			      << ((sizeof(ip_addr) * 8)
 				  - n->n.ea_cache.pnode_pxlen)));
 
+		  if (ht_get (ht, (unsigned char*) &ipnet, sizeof(ipnet)))
+		    {
+		      continue;
+		    }
+
+		  ht_set (ht, (unsigned char*) &ipnet, sizeof(ipnet), (void*) 1,
+			  0);
+
 		  n = net_find (brc_st_proto->c.proto->table, ipnet,
 				n->n.ea_cache.pnode_pxlen);
 
@@ -2597,16 +2603,6 @@ irc_relay_message (__sock_o origin, char *code, char *target,
 		    {
 		      continue;
 		    }
-
-		  ipnet = n->n.prefix;
-
-		  if (ht_get (ht, (unsigned char*) &ipnet, sizeof(ipnet)))
-		    {
-		      continue;
-		    }
-
-		  ht_set (ht, (unsigned char*) &ipnet, sizeof(ipnet), (void*) 1,
-			  0);
 
 		  pkt->dest.addr = ipnet;
 		  pkt->dest.len = (unsigned int) n->n.pxlen;
