@@ -352,21 +352,20 @@ net_mrl_destroy (__sock_o pso)
       struct bgp_proto *p = pso->st_p0;
       if (p)
 	{
-	  if (p->rlink_sock != pso)
+	  if (p->rlink_sock && p->rlink_sock != pso)
 	    {
-	      break; // we don't govern the link, quit silently
+	      p->rlink_sock = NULL;
+	      log (L_DEBUG "net_mrl_init: [%d]: relay link down", pso->sock);
+
+	      if (!p->conn || p->conn->state != BS_ESTABLISHED)
+		{
+		  log (
+		  L_WARN "net_mrl_destroy: [%d]: BGP session not connected",
+		       pso->sock);
+		  break;
+		}
 	    }
 
-	  p->rlink_sock = NULL;
-	  log (L_DEBUG "net_mrl_init: [%d]: relay link down", pso->sock);
-
-	  if (!p->conn || p->conn->state != BS_ESTABLISHED)
-	    {
-	      log (
-		  L_WARN "net_mrl_destroy: [%d]: BGP session not connected, discarding socket",
-		  pso->sock);
-	      break;
-	    }
 	}
 
       if (!(pso->flags & F_OPSOCK_IN) && (pso->flags & F_OPSOCK_CONNECT)
