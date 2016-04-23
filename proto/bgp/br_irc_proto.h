@@ -88,7 +88,7 @@ struct payload_chan
 
 struct proto_irc_rlmsg
 {
-  char code[8];
+  char code[10];
   char hostname[100];
   char args[100];
   char message[MAX_IRC_MSGLEN];
