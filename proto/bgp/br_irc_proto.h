@@ -232,6 +232,19 @@ typedef struct irc_ea_payload
 
 #define LINK_CLOSE_TEXT		"ERROR :Closing Link: %s[%s] (%s)\r\n"
 
-#define IRC_MESSAGE_DLMT	"\xD\xA"
+#define IRC_MESSAGE_DELIMITER	"\xD\xA"
+
+
+
+#define T_MSG_ALPHANUM		"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+
+#define IRC_GEN_AC_CHR		"!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ "
+#define IRC_NICK_AC_CHR		"0123456789<>ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}"
+#define IRC_USER_AC_CHR		T_MSG_ALPHANUM
+#define IRC_REAL_AC_CHR		IRC_NICK_AC_CHR "* "
+
+#define IRC_NICK_AC_CHR_C	"#" IRC_NICK_AC_CHR
+
+#define IRC_CHAN_AC		"#0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-_abcdefghijklmnopqrstuvwxyz"
 
 #endif /* PROTO_BGP_BR_IRC_PROTO_H_ */

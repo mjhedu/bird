@@ -1488,10 +1488,12 @@ net_generic_socket_init0 (__sock_o pso)
   if (ioctl (pso->sock, FIOASYNC, &async) == -1)
     {
       char err_buf[1024];
+      strerror_r (errno, err_buf, sizeof(err_buf));
       log (
       L_ERR "net_generic_socket_init0: [%d]: ioctl (FIOASYNC) failed [%d] [%s]",
-	   pso->sock, errno, strerror_r (errno, err_buf, sizeof(err_buf)));
+	   pso->sock, errno, err_buf);
       pso->flags |= F_OPSOCK_TERM;
+      return -1;
     }
 
   fown_ex.pid = getpid ();
@@ -1505,6 +1507,7 @@ net_generic_socket_init0 (__sock_o pso)
 	  L_ERR "net_generic_socket_init0: [%d]: fcntl (F_SETOWN_EX) failed [%d] [%s]",
 	  pso->sock, errno, err_buf);
       pso->flags |= F_OPSOCK_TERM;
+      return -1;
     }
   else
     {
@@ -1934,9 +1937,10 @@ net_accept (__sock_o spso, pmda base, pmda threadr, void *data)
       spso->status = -1;
 
       char err_buf[1024];
+      strerror_r (errno, err_buf, sizeof(err_buf));
       log (L_ERR "net_accept: [%d]: accept: [%d]: [%s]", spso->sock,
       errno,
-	   strerror_r (errno, err_buf, sizeof(err_buf)));
+	   err_buf);
 
       //f_term: ;
 
@@ -1951,11 +1955,12 @@ net_accept (__sock_o spso, pmda base, pmda threadr, void *data)
       spso->status = -2;
 
       char err_buf[1024];
+      strerror_r (errno, err_buf, sizeof(err_buf));
       log (L_ERR
       "net_accept: [%d]: fcntl F_SETFL(O_NONBLOCK): [%d]: [%s]",
 	   spso->sock,
 	   errno,
-	   strerror_r (errno, err_buf, sizeof(err_buf)));
+	   err_buf);
 
       return 0;
     }
@@ -2196,9 +2201,10 @@ net_accept_ssl (__sock_o pso, pmda base, pmda threadr, void *data)
       if (ssl_err == SSL_ERROR_SYSCALL && ret == -1)
 	{
 	  char err_buf[1024];
+	  strerror_r (errno, err_buf, sizeof(err_buf));
 	  log (L_ERR "SSL_accept: [%d]: accept: [%d]: [%s]", pso->sock,
 	  errno,
-	       strerror_r (errno, err_buf, sizeof(err_buf)));
+	       err_buf);
 	}
       else
 	{
@@ -2367,8 +2373,9 @@ net_ssend_b (__sock_o pso, void *data, size_t length)
       if (!(errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR))
 	{
 	  char e_buffer[1024];
+	  strerror_r (errno, e_buffer, sizeof(e_buffer));
 	  log (L_ERR "net_ssend_b: send failed: %s",
-	       strerror_r (errno, e_buffer, sizeof(e_buffer)));
+	       e_buffer);
 	  pso->s_errno = errno;
 	  ret = 1;
 	  break;

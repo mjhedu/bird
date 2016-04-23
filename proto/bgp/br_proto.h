@@ -63,8 +63,14 @@ typedef struct generic_table
 {
   mda r;
   hashtable_t *ht;
-  void *p,*rp;
 } gtable_t;
+
+typedef struct generic_table_ext
+{
+  gtable_t gt1;
+  void *p,*rp;
+  gtable_t gt2;
+} gtable_tex;
 
 typedef struct gt_lwrap
 {
@@ -73,6 +79,10 @@ typedef struct gt_lwrap
   void *ptr;
 } gt_lwrap;
 
+
+#define NB_BITS		(sizeof(ip_addr) * 8)
+
+#define NETWORK(a,b) a & ( (ip_addr) -1 << (NB_BITS - b) )
 
 
 #endif /* PROTO_BGP_BR_PROTO_H_ */

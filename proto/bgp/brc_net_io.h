@@ -344,4 +344,5 @@ net_get_addrinfo_ip_str (__sock_o pso, char *out, socklen_t len);
 typedef int
 (p_s_cb) (__sock_o spso, pmda base, pmda threadr, void *data);
 
+
 #endif /* PROTO_BGP_BRC_NET_IO_H_ */

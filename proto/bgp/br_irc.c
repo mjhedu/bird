@@ -77,17 +77,6 @@ get_irc_payload_pfx (struct proto *p, struct prefix *pfx)
  return 0;
  }*/
 
-#define T_MSG_ALPHANUM		"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-
-#define IRC_GEN_AC_CHR		"!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ "
-#define IRC_NICK_AC_CHR		"0123456789<>ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}"
-#define IRC_USER_AC_CHR		T_MSG_ALPHANUM
-#define IRC_REAL_AC_CHR		IRC_NICK_AC_CHR "* "
-
-#define IRC_NICK_AC_CHR_C	"#" IRC_NICK_AC_CHR
-
-#define IRC_CHAN_AC		"#0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-_abcdefghijklmnopqrstuvwxyz"
-
 static int
 irc_payload_str_basevalid (char *chan, size_t l)
 {
@@ -234,7 +223,7 @@ net_proto_irc_baseline (__sock_o pso, pmda base, pmda n, void *data)
       return -3;
     }
 
-  char *dl = strstr (msg, IRC_MESSAGE_DLMT);
+  char *dl = strstr (msg, IRC_MESSAGE_DELIMITER);
 
   if (NULL == dl)
     {
@@ -747,7 +736,8 @@ irc_proto_cache_n (ip_addr *prefix, char *net_name, uint32_t flags)
 }
 
 static void
-irc_proto_cache_gch (ip_addr *prefix, char *name, uint32_t flags)
+irc_proto_cache_map_cti (ip_addr *prefix, uint8_t pnode_pfxsz, char *name,
+			 uint32_t flags)
 {
   if (!name[0])
     {
@@ -758,17 +748,22 @@ irc_proto_cache_gch (ip_addr *prefix, char *name, uint32_t flags)
 
   if (flags & F_IRC_CACHE_UPDATE)
     {
-      gtable_t *item = ht_get (server_ctx.map_chan_to_ipas.ht,
-			       (unsigned char*) name, chlen);
+      gtable_tex *item = ht_get (server_ctx.map_chan_to_ipas.ht,
+				 (unsigned char*) name, chlen);
 
       if (!item)
 	{
-	  item = calloc (1, sizeof(gtable_t));
-	  md_init (&item->r);
-	  item->r.flags |= F_MDA_REFPTR;
-	  item->ht = ht_create (1000);
-	  item->p = strdup (name);
+	  item = calloc (1, sizeof(gtable_tex));
 
+	  md_init (&item->gt1.r);
+	  item->gt1.r.flags |= F_MDA_REFPTR;
+	  item->gt1.ht = ht_create (1000);
+
+	  md_init (&item->gt2.r);
+	  item->gt2.r.flags |= F_MDA_REFPTR;
+	  item->gt2.ht = ht_create (1000);
+
+	  item->p = strdup (name);
 	  ht_set (server_ctx.map_chan_to_ipas.ht, (unsigned char*) name, chlen,
 		  item, 0);
 
@@ -776,50 +771,101 @@ irc_proto_cache_gch (ip_addr *prefix, char *name, uint32_t flags)
 	  item->rp = server_ctx.map_chan_to_ipas.r.pos;
 	}
 
-      struct ipc_gch *igch = ht_get (item->ht, (unsigned char*) prefix,
+      // chan to user
+
+      struct ipc_mci *imci = ht_get (item->gt1.ht, (unsigned char*) prefix,
 				     sizeof(ip_addr));
 
-      if (igch)
+      if (imci)
 	{
 	  return;
 	}
 
-      igch = malloc (sizeof(struct ipc_gch));
-      igch->ipa = *prefix;
+      imci = malloc (sizeof(struct ipc_mci));
+      imci->ipa = *prefix;
 
-      md_alloc (&item->r, 0, 0, igch);
+      md_alloc (&item->gt1.r, 0, 0, imci);
+      imci->bref = item->gt1.r.pos;
 
-      igch->bref = item->r.pos;
+      ht_set (item->gt1.ht, (unsigned char*) prefix, sizeof(ip_addr), imci, 0);
 
-      ht_set (item->ht, (unsigned char*) prefix, sizeof(ip_addr), igch, 0);
+      // chan to node refs
+
+      ip_addr ipa = NETWORK(*prefix, pnode_pfxsz);
+
+      struct ipc_mcni *imnci = ht_get (item->gt2.ht, (unsigned char*) &ipa,
+				       sizeof(ip_addr));
+
+      if (imnci)
+	{
+	  return;
+	}
+
+      imnci = malloc (sizeof(struct ipc_mcni));
+      imnci->ipa.addr = ipa;
+      imnci->ipa.len = pnode_pfxsz;
+
+      md_alloc (&item->gt2.r, 0, 0, imnci);
+      imnci->bref = item->gt2.r.pos;
+
+      ht_set (item->gt2.ht, (unsigned char*) &ipa, sizeof(ip_addr), imnci, 0);
 
     }
   else if (flags & F_IRC_CACHE_REMOVE)
     {
-      gtable_t *item = ht_get (server_ctx.map_chan_to_ipas.ht, name, chlen);
+      gtable_tex *item = ht_get (server_ctx.map_chan_to_ipas.ht, name, chlen);
 
       if (!item)
 	{
 	  return;
 	}
 
-      struct ipc_gch *igch = ht_get (item->ht, (unsigned char*) prefix,
+      // chan to user
+
+      struct ipc_mci *imci = ht_get (item->gt1.ht, (unsigned char*) prefix,
 				     sizeof(ip_addr));
 
-      if (!igch)
+      if (!imci)
 	{
 	  return;
 	}
 
-      md_unlink (&item->r, igch->bref);
-      free (igch);
+      md_unlink (&item->gt1.r, imci->bref);
+      free (imci);
 
-      ht_remove (item->ht, (unsigned char*) prefix, sizeof(ip_addr));
+      ht_remove (item->gt1.ht, (unsigned char*) prefix, sizeof(ip_addr));
 
-      if (!item->r.offset)
+      // chan to node
+
+      ip_addr ipa = NETWORK(*prefix, pnode_pfxsz);
+
+      struct ipc_mcni *imnci = ht_get (item->gt2.ht, (unsigned char*) &ipa,
+				       sizeof(ip_addr));
+
+      if (imnci)
 	{
-	  md_free (&item->r);
-	  ht_destroy (item->ht);
+	  die (
+	      "irc_proto_cache_map_cti: chan->user ref exists while chan->node does not");
+	}
+
+      md_unlink (&item->gt2.r, imnci->bref);
+      free (imnci);
+
+      ht_remove (item->gt2.ht, (unsigned char*) &ipa, sizeof(ip_addr));
+
+      if (!item->gt1.r.offset)
+	{
+
+	  if (item->gt2.r.offset)
+	    {
+	      die (
+		  "irc_proto_cache_map_cti: chan->node refs still exists where no chan->user do");
+	    }
+
+	  md_free (&item->gt1.r);
+	  md_free (&item->gt2.r);
+	  ht_destroy (item->gt1.ht);
+	  ht_destroy (item->gt2.ht);
 	  ht_remove (server_ctx.map_chan_to_ipas.ht, (unsigned char*) name,
 		     chlen);
 	  md_unlink (&server_ctx.map_chan_to_ipas.r, (p_md_obj) item->rp);
@@ -842,7 +888,9 @@ irc_do_user_quit (__sock_o pso)
 	{
 	  irc_local_broadcast_to_chan (pso, d->name, bd, dlen);
 
-	  irc_proto_cache_gch (&uirc->net.addr, d->name, F_IRC_CACHE_REMOVE);
+	  irc_proto_cache_map_cti (&uirc->net.addr,
+				   (uint8_t) _icf_global.pfx.len, d->name,
+				   F_IRC_CACHE_REMOVE);
 	  irc_channel_cleanup_loc (d, pso, d->name);
 
 	}MD_END
@@ -912,7 +960,7 @@ irc_join_chan (__sock_o pso, char *chan)
       return 1; // can't join any more
     }
 
-  // update caches
+  // update local caches
 
   gt_lwrap *lw_g = ht_get (server_ctx.loc_chans.ht, (unsigned char*) chan,
 			   clen);
@@ -936,7 +984,8 @@ irc_join_chan (__sock_o pso, char *chan)
   lw_g->locks++;
   irc_ctx_add_channel (pic, &uirc->chans, chan, clen);
 
-  irc_proto_cache_gch (&bbr->n->n.prefix, chan, F_IRC_CACHE_UPDATE);
+  irc_proto_cache_map_cti (&bbr->n->n.prefix, bbr->n->n.ea_cache.pnode_pxlen,
+			   chan, F_IRC_CACHE_UPDATE);
 
   // propagate globally
 
@@ -1032,9 +1081,10 @@ irc_part_chan (__sock_o pso, char *chan)
   memcpy (&bbr->n->n.ea_cache, ipl, sizeof(irc_ea_payload));
   br_trigger_update (brc_st_proto->c.proto, bbr->n);
 
-  // clear caches
+  // clear local caches
 
-  irc_proto_cache_gch (&bbr->n->n.prefix, chan, F_IRC_CACHE_REMOVE);
+  irc_proto_cache_map_cti (&bbr->n->n.prefix, bbr->n->n.ea_cache.pnode_pxlen,
+			   chan, F_IRC_CACHE_REMOVE);
   irc_ctx_remove_channel (lw_l, &uirc->chans, chan, clen);
   irc_channel_cleanup_loc (pic, pso, chan);
 
@@ -1541,10 +1591,10 @@ C_PRELOAD(irc_c_list, <0)
       return 0;
     }
 
-  MD_START(&server_ctx.map_chan_to_ipas.r, gtable_t, cho)
+  MD_START(&server_ctx.map_chan_to_ipas.r, gtable_tex, cho)
 	{
 	  snprintf (b, sizeof(b), "%s #%s %llu", uirc->u_settings.true_name,
-		    (char*) cho->p, (unsigned long long int) cho->r.offset);
+		    (char*) cho->p, (unsigned long long int) cho->gt1.r.offset);
 	  if (irc_send_simple_response (pso, _icf_global.hostname, "322", b,
 					"[+nrt] "))
 	    {
@@ -2027,7 +2077,7 @@ net_proto_irc_socket_destroy0 (__sock_o pso)
 	{
 
 	  irc_proto_cache_n (&bbr->n->n.prefix, bbr->n->n.ea_cache.net_name,
-			     F_IRC_CACHE_REMOVE);
+	  F_IRC_CACHE_REMOVE);
 
 	  bbr->n->n.pso = NULL;
 
@@ -2052,22 +2102,20 @@ irc_local_broadcast_to_chan (__sock_o self, char *name, char *data, size_t len)
   if (lw)
     {
       proto_irc_chan *pic = lw->ptr;
-      p_md_obj ptr = pic->sockref.first;
 
-      while (ptr)
-	{
-	  __sock_o pso = ptr->ptr;
-
-	  if (self != pso)
+      MD_START(&pic->sockref, _sock_o, pso)
 	    {
+	      if (self == pso)
+		{
+		  continue;
+		}
+
 	      if (net_send_direct (pso, data, len))
 		{
 		  return 1;
 		}
-	    }
 
-	  ptr = ptr->next;
-	}
+	    }MD_END
     }
 
   return 0;
@@ -2105,7 +2153,8 @@ irc_process_route_withdraw (net *n, uint32_t flags)
 	}
 
       irc_local_broadcast_to_chan (NULL, name, data, dlen);
-      irc_proto_cache_gch (&n->n.prefix, name, F_IRC_CACHE_REMOVE);
+      irc_proto_cache_map_cti (&n->n.prefix, cache->pnode_pxlen, name,
+      F_IRC_CACHE_REMOVE);
 
     }
 
@@ -2258,8 +2307,7 @@ irc_proto_proc_update (net *n, uint32_t flags)
   if (irc_payload_str_validate_generic (cache->net_name, MAX_CL_NAME_LEN)
       || irc_payload_str_validate_generic (cache->true_name, MAX_CL_NAME_LEN)
       || irc_payload_str_validate_generic (cache->user_name, MAX_IRC_USERNAME)
-      || irc_payload_str_validate_generic (cache->real_name,
-      MAX_IRC_REALNAME))
+      || irc_payload_str_validate_generic (cache->real_name, MAX_IRC_REALNAME))
     {
       log (
       L_FATAL "irc_proto_proc_update: corrupt cache entry from %I",
@@ -2284,12 +2332,12 @@ irc_proto_proc_update (net *n, uint32_t flags)
 	  if (strncmp (tn_lower, pl->net_name, MAX_CL_NAME_LEN))
 	    {
 	      log (L_ERR "Faulty nick update for %I: '%s' != '%s'", n->n.prefix,
-		   pl->net_name, pl->true_name);
+		   tn_lower, pl->net_name);
 	      return 0;
 	    }
 
-	  log (L_INFO "irc_proto_proc_update: name change: %s to %s",
-	       cache->true_name, pl->true_name);
+	  /*log (L_INFO "irc_proto_proc_update: name change: %s to %s",
+	   cache->true_name, pl->true_name);*/
 
 	  char h[1024];
 	  snprintf (h, sizeof(h), MSG_IRC_HOSTNAME, cache->true_name,
@@ -2326,45 +2374,46 @@ irc_proto_proc_update (net *n, uint32_t flags)
 	  irc_proto_cache_n (&n->n.prefix, pl->net_name, F_IRC_CACHE_UPDATE);
 	}
 
+      for (i = 0; i < PAYLOAD_CR_SIZE; i++)
+	{
+	  char *name = cache->joined[i].name;
+
+	  if (!name[0])
+	    {
+	      continue;
+	    }
+
+	  for (j = 0; j < PAYLOAD_CR_SIZE; j++)
+	    {
+	      if (!strncmp (name, pl->joined[j].name, MAX_CH_NAME_LEN))
+		{
+		  goto end1;
+		}
+	    }
+
+	  //log (L_DEBUG "%s parted %s", pl->true_name, name);
+
+	  char c[MAX_CH_NAME_LEN + 2];
+	  snprintf (c, sizeof(c), "#%s", name);
+
+	  char *data = irc_assemble_response (hostname, "PART", c);
+
+	  irc_local_broadcast_to_chan (NULL, name, data, strlen (data));
+
+	  free (data);
+
+	  irc_proto_cache_map_cti (&n->n.prefix, cache->pnode_pxlen, name,
+	  F_IRC_CACHE_REMOVE);
+
+	  end1: ;
+
+	}
+
     }
   else
     {
       irc_proto_cache_n (&n->n.prefix, pl->net_name, F_IRC_CACHE_REMOVE);
       irc_proto_cache_n (&n->n.prefix, pl->net_name, F_IRC_CACHE_UPDATE);
-    }
-
-  for (i = 0; i < PAYLOAD_CR_SIZE; i++)
-    {
-      char *name = cache->joined[i].name;
-
-      if (!name[0])
-	{
-	  continue;
-	}
-
-      for (j = 0; j < PAYLOAD_CR_SIZE; j++)
-	{
-	  if (!strncmp (name, pl->joined[j].name, MAX_CH_NAME_LEN))
-	    {
-	      goto end1;
-	    }
-	}
-
-      //log (L_DEBUG "%s parted %s", pl->true_name, name);
-
-      char c[MAX_CH_NAME_LEN + 2];
-      snprintf (c, sizeof(c), "#%s", name);
-
-      char *data = irc_assemble_response (hostname, "PART", c);
-
-      irc_local_broadcast_to_chan (NULL, name, data, strlen (data));
-
-      free (data);
-
-      irc_proto_cache_gch (&n->n.prefix, name, F_IRC_CACHE_REMOVE);
-
-      end1: ;
-
     }
 
   for (i = 0; i < PAYLOAD_CR_SIZE; i++)
@@ -2405,7 +2454,8 @@ irc_proto_proc_update (net *n, uint32_t flags)
 
       free (data);
 
-      irc_proto_cache_gch (&n->n.prefix, name, F_IRC_CACHE_UPDATE);
+      irc_proto_cache_map_cti (&n->n.prefix, pl->pnode_pxlen, name,
+      F_IRC_CACHE_UPDATE);
 
       end0: ;
 
@@ -2562,13 +2612,13 @@ irc_relay_message (__sock_o origin, char *code, char *target, char *message)
     {
       irc_deliver_mrl_chan (origin, msg);
 
-      gtable_t *item = ht_get (server_ctx.map_chan_to_ipas.ht,
-			       (unsigned char*) &target[1],
-			       strlen (msg->args) - 1);
+      gtable_tex *item = ht_get (server_ctx.map_chan_to_ipas.ht,
+				 (unsigned char*) &target[1],
+				 strlen (msg->args) - 1);
       if (item)
 	{
 	  hashtable_t *ht = ht_create (128);
-	  MD_START(&item->r, ip_addr, dest)
+	  MD_START(&item->gt1.r, ip_addr, dest)
 		{
 		  net *n = net_find (brc_st_proto->c.proto->table, *dest,
 				     (sizeof(ip_addr) * 8));
@@ -2578,11 +2628,7 @@ irc_relay_message (__sock_o origin, char *code, char *target, char *message)
 		      continue;
 		    }
 
-		  ip_addr ipnet =
-		      *dest
-			  & (((ip_addr) -1
-			      << ((sizeof(ip_addr) * 8)
-				  - n->n.ea_cache.pnode_pxlen)));
+		  ip_addr ipnet = NETWORK(*dest, n->n.ea_cache.pnode_pxlen);
 
 		  if (ht_get (ht, (unsigned char*) &ipnet, sizeof(ipnet)))
 		    {

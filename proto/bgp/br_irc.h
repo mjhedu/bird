@@ -142,9 +142,15 @@ irc_relay_message (__sock_o origin, char *code, char *target,
 
 #define M1_CSTRING(m,a) char _b[1024]; snprintf(_b, sizeof(_b), m, a);
 
-struct ipc_gch
+struct ipc_mci
 {
   ip_addr ipa;
+  p_md_obj bref;
+};
+
+struct ipc_mcni
+{
+  struct prefix ipa;
   p_md_obj bref;
 };
 
