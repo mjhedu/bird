@@ -120,8 +120,6 @@ net_baseline_relay_forwarder (__sock_o origin, mrl_dpkt *pkt)
     }
   else if (n->routes->attrs->source == RTS_BGP) // forward
     {
-      //struct rte *routes = mrl_baseline_lookup_best_path (n);
-
       struct bgp_proto *p;
       struct rte *routes = n->routes;
 
@@ -129,7 +127,7 @@ net_baseline_relay_forwarder (__sock_o origin, mrl_dpkt *pkt)
 	{
 	  p = (struct bgp_proto *) routes->attrs->src->proto;
 
-	  if (!p || !p->rlink_sock) // must have a relay connection
+	  if (!p || !p->rlink_sock || (p->rlink_sock->flags & F_OPSOCK_TERM)) // must have a relay connection
 	    {
 	      continue;
 	    }
@@ -162,7 +160,7 @@ net_baseline_relay_forwarder (__sock_o origin, mrl_dpkt *pkt)
 
 }
 
-static int
+int
 net_baseline_relay (__sock_o pso, pmda base, pmda threadr, void *data)
 {
 
@@ -224,20 +222,6 @@ mrl_apply_default_policy (__sock_ca ca)
   ca->policy.max_sim_ip = 4;
   ca->policy.connect_retry_timeout = 30;
   ca->policy.max_connect_retries = 0;
-}
-
-void
-mrl_init_ca_default (__sock_ca ca)
-{
-  md_init (&ca->init_rc0);
-  md_init (&ca->init_rc1);
-  md_init (&ca->shutdown_rc0);
-  md_init (&ca->shutdown_rc1);
-  md_init (&ca->c_tasks);
-  md_init (&ca->ct_tasks);
-  md_init (&ca->t_tasks);
-  md_init (&ca->t_rcv);
-  md_init (&ca->c_pre_tasks);
 }
 
 void
@@ -389,7 +373,7 @@ net_mrl_destroy (__sock_o pso)
 	  && (pso->flags & F_OPSOCK_PERSIST))
 	{
 	  __sock_ca oldca = pso->sock_ca;
-	  oldca->policy.socket_proc_delay = 15;
+	  oldca->policy.socket_initproc_delay = 15;
 	  if (net_open_connection (oldca->host, oldca->port, oldca))
 	    {
 	      log (
@@ -420,9 +404,7 @@ mrl_fill_ca_default (__sock_ca ca)
 
   ca->proc = (_p_sc_cb) net_baseline_prochdr;
 
-  pc_a[PROT_CODE_RELAY].ptr = (void*) net_baseline_relay;
-
-  ca->policy.socket_proc_delay = 5;
+  ca->policy.socket_initproc_delay = 5;
   // net_register_task (&ca->c_tasks, irc_rx_translate, NULL, 0);
   net_register_task (&ca->ct_tasks, mrl_sock_keepalive, NULL, 0);
 
