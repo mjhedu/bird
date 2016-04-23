@@ -54,7 +54,7 @@ ht_destroy (hashtable_t * hashtable)
 	  continue;
 	}
 
-      while (ptr != NULL)
+      while (ptr)
 	{
 	  if (ptr->key)
 	    {
@@ -62,7 +62,7 @@ ht_destroy (hashtable_t * hashtable)
 	    }
 	  entry_t *t_ptr = ptr;
 	  ptr = ptr->next;
-	  free (ptr);
+	  free (t_ptr);
 	}
 
     }
@@ -99,12 +99,12 @@ ht_newpair (unsigned char *key, size_t k_size, void *value, size_t size)
 
   if ((newpair = malloc (sizeof(entry_t))) == NULL)
     {
-      return NULL;
+      abort ();
     }
 
   if ((newpair->key = malloc (k_size)) == NULL)
     {
-      return NULL;
+      abort ();
     }
 
   memcpy (newpair->key, (void*) key, k_size);

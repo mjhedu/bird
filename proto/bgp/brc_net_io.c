@@ -1191,7 +1191,7 @@ net_socket_proc_delay (__sock_o pso, __net_task task)
       pso->timers.l_delay_proc = t;
     }
 
-  if (t - pso->timers.l_delay_proc >= pso->policy.socket_proc_delay)
+  if (t - pso->timers.l_delay_proc >= pso->policy.socket_initproc_delay)
     {
       return -2;
     }
@@ -2432,7 +2432,7 @@ net_ssend_ssl_b (__sock_o pso, void *data, size_t length)
   if (0 == length)
     {
       log (L_ERR "net_ssend_ssl_b: [%d]: zero length input", pso->sock);
-      abort ();
+      return 1;
     }
 
   if (pso->flags & F_OPSOCK_ORPHANED)

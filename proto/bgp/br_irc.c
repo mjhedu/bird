@@ -815,14 +815,14 @@ irc_proto_cache_map_cti (ip_addr *prefix, uint8_t pnode_pfxlen, char *name,
     }
   else if (flags & F_IRC_CACHE_REMOVE)
     {
+      // chan to user
+
       gtable_tex *item = ht_get (server_ctx.map_chan_to_ipas.ht, name, chlen);
 
       if (!item)
 	{
 	  return;
 	}
-
-      // chan to user
 
       struct ipc_mci *imci = ht_get (item->gt1.ht, (unsigned char*) prefix,
 				     sizeof(ip_addr));
@@ -2622,57 +2622,40 @@ irc_relay_message (__sock_o origin, char *code, char *target, char *message)
       gtable_tex *item = ht_get (server_ctx.map_chan_to_ipas.ht,
 				 (unsigned char*) &target[1],
 				 strlen (msg->args) - 1);
-      if (item)
-	{
-	  //hashtable_t *ht = ht_create (128);
-	  MD_START(&item->gt2.r, struct prefix, dest)
-		{
-		  /*net *n = net_find (brc_st_proto->c.proto->table, *dest,
-		   (sizeof(ip_addr) * 8));
-
-		   if (!n || !n->routes || !n->routes->attrs)
-		   {
-		   continue;
-		   }
-
-		   ip_addr ipnet = NETWORK(*dest, n->n.ea_cache.pnode_pxlen);
-
-		   if (ht_get (ht, (unsigned char*) &ipnet, sizeof(ipnet)))
-		   {
-		   continue;
-		   }
-
-		   ht_set (ht, (unsigned char*) &ipnet, sizeof(ipnet), (void*) 1,
-		   0);*/
-
-		  net * n = net_find (brc_st_proto->c.proto->table, dest->addr,
-				      dest->len);
-
-		  if (!n || !n->routes || !n->routes->attrs)
-		    {
-		      continue;
-		    }
-
-		  if (n->routes->attrs->source != RTS_BGP)
-		    {
-		      continue;
-		    }
-
-		  pkt->dest.addr = n->n.prefix;
-		  pkt->dest.len = (unsigned int) n->n.pxlen;
-		  pkt->code = PROT_RELAY_FORWARD;
-		  pkt->ttl = 100;
-
-		  irc_relay_send_pkt_out (origin, pkt, n);
-
-		}MD_END
-	  //ht_destroy (ht);
-	}
-      else
+      if (!item)
 	{
 	  log (L_DEBUG "irc_relay_message: [%d]: %s doesn't exist globally",
 	       origin->sock, target);
 	}
+
+      MD_START(&item->gt2.r, struct prefix, dest)
+	    {
+	      net * n = net_find (brc_st_proto->c.proto->table, dest->addr,
+				  dest->len);
+
+	      if (!n || !n->routes || !n->routes->attrs
+		  || !n->routes->attrs->src)
+		{
+		  log (
+		  L_ERR "irc_relay_message: [%d]: %I/%d unreachable (no path)",
+		       origin->sock, dest->addr, dest->len);
+
+		  continue;
+		}
+
+	      if (n->routes->attrs->source != RTS_BGP)
+		{
+		  continue;
+		}
+
+	      pkt->dest.addr = n->n.prefix;
+	      pkt->dest.len = (unsigned int) n->n.pxlen;
+	      pkt->code = PROT_RELAY_FORWARD;
+	      pkt->ttl = 100;
+
+	      irc_relay_send_pkt_out (origin, pkt, n);
+
+	    }MD_END
     }
   else
     {
@@ -2892,6 +2875,8 @@ void
 _mrl_startup (__sock_ca ca)
 {
 
+  pc_a[PROT_CODE_RELAY].ptr = (void*) net_baseline_relay;
+
   md_init (&msg_relay_socks.r);
 
   msg_relay_socks.ht = ht_create (4096);
@@ -2927,7 +2912,7 @@ _mrl_startup (__sock_ca ca)
       ca->ssl_cipher_list = _icf_global.default_ssl_cipher_list;
     }
 
-  mrl_init_ca_default (ca);
+  net_ca_init(ca);
 
   mrl_fill_ca_default (ca);
 

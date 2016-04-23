@@ -72,4 +72,7 @@ mrl_init_ca_default (__sock_ca ca);
 void
 mrl_fill_ca_default (__sock_ca ca);
 
+int
+net_baseline_relay (__sock_o pso, pmda base, pmda threadr, void *data);
+
 #endif /* PROTO_BGP_MSG_RELAY_H_ */

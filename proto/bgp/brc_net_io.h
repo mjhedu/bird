@@ -103,7 +103,7 @@ typedef struct ___sock_policy
   time_t idle_timeout, listener_idle_timeout, connect_timeout, accept_timeout,
       close_timeout, ssl_accept_timeout, ssl_connect_timeout, send_timeout;
   time_t connect_retries, connect_retry_timeout;
-  time_t socket_proc_delay;
+  time_t socket_initproc_delay;
   uint8_t mode;
   int ssl_verify;
 } _net_sp, *__net_sp;
