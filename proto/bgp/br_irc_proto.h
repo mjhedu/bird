@@ -153,7 +153,7 @@ typedef struct irc_ea_payload
 #define ERR_NONICKNAMEGIVEN_TEXT  ":No nickname given"
 
 #define ERR_ERRONEUSNICKNAME      432
-#define ERR_ERRONEUSNICKNAME_TEXT "Erroneus nickname"
+#define ERR_ERRONEUSNICKNAME_TEXT "Erroneus Nickname"
 
 #define ERR_NICKNAMEINUSE         433
 #define ERR_NICKNAMEINUSE_TEXT    "Nickname is already in use"
@@ -224,6 +224,8 @@ typedef struct irc_ea_payload
 
 #define ERR_USERSDONTMATCH        502
 #define ERR_USERSDONTMATCH_TEXT   ":Cant change mode for other users"
+
+#define ERR_NICK_ILLEGAL_TEXT     ERR_ERRONEUSNICKNAME_TEXT": Illegal characters"
 
 #define RPL_USERHOST              302
 #define RPL_CHANNELMODEIS_TEXT    "%s %s"

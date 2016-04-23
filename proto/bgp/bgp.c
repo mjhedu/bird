@@ -642,7 +642,7 @@ bgp_connected (sock *sk)
 
   if (bgp_hook_run (BGP_HOOK_CONN_OUTBOUND, p, NULL, NULL) & HOOK_STATUS_BAD)
     bgp_stop (conn->bgp, 0);
-  else if (p->cf->relay && !p->rlink_sock)
+  else if (p->cf->relay)
     mrl_open_conn (p, p->cf->remote_ip, p->cf->rlink_ca.ipr00.port,
 		   &p->cf->rlink_ca);
 

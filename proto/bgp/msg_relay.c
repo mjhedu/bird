@@ -311,7 +311,7 @@ net_mrl_init (__sock_o pso)
 
 	  if (p)
 	    {
-	      if (p->rlink_sock && p->rlink_sock != pso)
+	      if (p->rlink_sock)
 		{
 		  log (
 		      L_DEBUG "net_mrl_init: [%d]: relay link already exists from %I for proto %s",

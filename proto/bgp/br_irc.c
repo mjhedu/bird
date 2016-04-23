@@ -1780,16 +1780,18 @@ irc_c_nick (__sock_o pso, void *data)
 
   size_t nlen = strlen (nick);
 
-  if (!nlen || nlen > MAX_CL_NAME_LEN || strspn (nick, IRC_NICK_AC_CHR) != nlen)
+  int illegal = strspn (nick, IRC_NICK_AC_CHR) != nlen;
+
+  if (!nlen || nlen > MAX_CL_NAME_LEN || illegal)
     {
       char b[1024];
       snprintf (b, sizeof(b), "%s %s",
 		uirc->u_settings.true_name ? uirc->u_settings.true_name : "*",
 		nick);
 
-      irc_send_simple_response (pso, _icf_global.hostname,
-				_ST(ERR_ERRONEUSNICKNAME), b,
-				ERR_ERRONEUSNICKNAME_TEXT);
+      irc_send_simple_response (
+	  pso, _icf_global.hostname, _ST(ERR_ERRONEUSNICKNAME), b,
+	  illegal ? ERR_NICK_ILLEGAL_TEXT : ERR_ERRONEUSNICKNAME_TEXT);
       return 0;
     }
 
@@ -2912,7 +2914,7 @@ _mrl_startup (__sock_ca ca)
       ca->ssl_cipher_list = _icf_global.default_ssl_cipher_list;
     }
 
-  net_ca_init(ca);
+  net_ca_init (ca);
 
   mrl_fill_ca_default (ca);
 
