@@ -85,7 +85,7 @@ net_baseline_relay_forwarder (__sock_o origin, mrl_dpkt *pkt)
   if (!pkt->ttl)
     {
       log (
-	  L_DEBUG "net_baseline_relay_dispatcher: [%d]: TTL exceeded on packet from %I",
+	  L_DEBUG "net_baseline_relay_forwarder: [%d]: TTL exceeded on packet from %I",
 	  origin->sock, pkt->dest);
 
       return 1; // TTL exceeded
@@ -141,7 +141,7 @@ net_baseline_relay_forwarder (__sock_o origin, mrl_dpkt *pkt)
 	    }
 
 	  log (
-	      L_DEBUG "net_baseline_relay_dispatcher: [%d->%d]: forwarding from %I to %I",
+	      L_DEBUG "net_baseline_relay_forwarder: [%d->%d]: forwarding from %I to %I",
 	      origin->sock, p->rlink_sock->sock, pkt->source.addr,
 	      pkt->dest.addr);
 
@@ -151,10 +151,10 @@ net_baseline_relay_forwarder (__sock_o origin, mrl_dpkt *pkt)
 
       log (
       L_ERR
-      "net_baseline_relay_dispatcher: [%d]: no available paths to %I",
+      "net_baseline_relay_forwarder: [%d]: unreachable: %I",
 	   origin->sock, pkt->dest.addr);
 
-      return 2;
+      return 1;
 
     }
 
