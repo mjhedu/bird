@@ -805,7 +805,7 @@ irc_proto_cache_map_cti (ip_addr *prefix, uint8_t pnode_pfxlen, char *name,
       imnci = malloc (sizeof(struct ipc_mcni));
       imnci->ipa.addr = ipa;
       imnci->ipa.len = pnode_pfxlen;
-      imnci->locks = 0;
+      imnci->locks = 1;
 
       md_alloc (&item->gt2.r, 0, 0, imnci);
       imnci->bref = item->gt2.r.pos;
