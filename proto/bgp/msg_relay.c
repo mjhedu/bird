@@ -352,7 +352,7 @@ net_mrl_destroy (__sock_o pso)
       struct bgp_proto *p = pso->st_p0;
       if (p)
 	{
-	  if (p->rlink_sock && p->rlink_sock == pso)
+	  if (p->rlink_sock)
 	    {
 	      p->rlink_sock = NULL;
 	      log (L_DEBUG "net_mrl_init: [%d]: relay link down", pso->sock);
@@ -366,6 +366,10 @@ net_mrl_destroy (__sock_o pso)
 		}
 	    }
 
+	  if (p->rlink_sock != pso)
+	    {
+	      break; // we don't govern the link, quit silently
+	    }
 	}
 
       if (!(pso->flags & F_OPSOCK_IN) && (pso->flags & F_OPSOCK_CONNECT)
