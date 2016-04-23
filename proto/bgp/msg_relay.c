@@ -78,7 +78,7 @@ mrl_baseline_lookup_best_path (net *n)
 }
 
 int
-net_baseline_relay_forwarder (__sock_o pso, mrl_dpkt *pkt)
+net_baseline_relay_forwarder (__sock_o origin, mrl_dpkt *pkt)
 {
   net_baseline_decrease_ttl (pkt);
 
@@ -86,7 +86,7 @@ net_baseline_relay_forwarder (__sock_o pso, mrl_dpkt *pkt)
     {
       log (
 	  L_DEBUG "net_baseline_relay_dispatcher: [%d]: TTL exceeded on packet from %I",
-	  pso->sock, pkt->dest);
+	  origin->sock, pkt->dest);
 
       return 1; // TTL exceeded
     }
@@ -120,28 +120,42 @@ net_baseline_relay_forwarder (__sock_o pso, mrl_dpkt *pkt)
     }
   else if (n->routes->attrs->source == RTS_BGP) // forward
     {
-      struct rte *routes = mrl_baseline_lookup_best_path (n);
+      //struct rte *routes = mrl_baseline_lookup_best_path (n);
 
-      if (routes)
+      struct bgp_proto *p;
+      struct rte *routes = n->routes;
+
+      for (; routes; routes = routes->next)
 	{
+	  p = (struct bgp_proto *) routes->attrs->src->proto;
 
-	  struct bgp_proto *p = (struct bgp_proto *) routes->attrs->src->proto;
+	  if (!p || !p->rlink_sock) // must have a relay connection
+	    {
+	      continue;
+	    }
+
+	  if (net_send_direct (p->rlink_sock, (void*) pkt,
+			       pkt->head.content_length))
+	    {
+	      continue;
+	    }
 
 	  log (
 	      L_DEBUG "net_baseline_relay_dispatcher: [%d->%d]: forwarding from %I to %I",
-	      pso->sock, p->rlink_sock->sock, pkt->source.addr, pkt->dest.addr);
+	      origin->sock, p->rlink_sock->sock, pkt->source.addr,
+	      pkt->dest.addr);
 
-	  return net_send_direct (p->rlink_sock, (void*) pkt,
-				  pkt->head.content_length);
+	  return 0;
+
 	}
-      else
-	{
-	  log (
-	  L_ERR
-	  "net_baseline_relay_dispatcher: [%d]: no available paths to %I",
-	       pso->sock, pkt->dest.addr);
-	  return 1;
-	}
+
+      log (
+      L_ERR
+      "net_baseline_relay_dispatcher: [%d]: no available paths to %I",
+	   origin->sock, pkt->dest.addr);
+
+      return 2;
+
     }
 
   return 0;
