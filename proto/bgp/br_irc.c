@@ -842,7 +842,7 @@ irc_proto_cache_map_cti (ip_addr *prefix, uint8_t pnode_pfxsz, char *name,
       struct ipc_mcni *imnci = ht_get (item->gt2.ht, (unsigned char*) &ipa,
 				       sizeof(ip_addr));
 
-      if (imnci)
+      if (!imnci)
 	{
 	  die (
 	      "irc_proto_cache_map_cti: chan->user ref exists while chan->node does not");
