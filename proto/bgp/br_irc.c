@@ -798,6 +798,7 @@ irc_proto_cache_map_cti (ip_addr *prefix, uint8_t pnode_pfxlen, char *name,
 
       if (imnci)
 	{
+	  imnci->locks++; // +1 for each chan->user ref
 	  return;
 	}
 
@@ -848,10 +849,15 @@ irc_proto_cache_map_cti (ip_addr *prefix, uint8_t pnode_pfxlen, char *name,
 	      "irc_proto_cache_map_cti: chan->user ref exists while chan->node does not");
 	}
 
-      md_unlink (&item->gt2.r, imnci->bref);
-      free (imnci);
+      imnci->locks--;
 
-      ht_remove (item->gt2.ht, (unsigned char*) &ipa, sizeof(ip_addr));
+      if (!imnci->locks)
+	{ /* no more chan->user refs, get rid of this chan->node */
+	  md_unlink (&item->gt2.r, imnci->bref);
+	  free (imnci);
+
+	  ht_remove (item->gt2.ht, (unsigned char*) &ipa, sizeof(ip_addr));
+	}
 
       if (!item->gt1.r.offset)
 	{
@@ -2621,25 +2627,25 @@ irc_relay_message (__sock_o origin, char *code, char *target, char *message)
 	  MD_START(&item->gt2.r, struct prefix, dest)
 		{
 		  /*net *n = net_find (brc_st_proto->c.proto->table, *dest,
-				     (sizeof(ip_addr) * 8));
+		   (sizeof(ip_addr) * 8));
 
-		  if (!n || !n->routes || !n->routes->attrs)
-		    {
-		      continue;
-		    }
+		   if (!n || !n->routes || !n->routes->attrs)
+		   {
+		   continue;
+		   }
 
-		  ip_addr ipnet = NETWORK(*dest, n->n.ea_cache.pnode_pxlen);
+		   ip_addr ipnet = NETWORK(*dest, n->n.ea_cache.pnode_pxlen);
 
-		  if (ht_get (ht, (unsigned char*) &ipnet, sizeof(ipnet)))
-		    {
-		      continue;
-		    }
+		   if (ht_get (ht, (unsigned char*) &ipnet, sizeof(ipnet)))
+		   {
+		   continue;
+		   }
 
-		  ht_set (ht, (unsigned char*) &ipnet, sizeof(ipnet), (void*) 1,
-			  0);*/
+		   ht_set (ht, (unsigned char*) &ipnet, sizeof(ipnet), (void*) 1,
+		   0);*/
 
 		  net * n = net_find (brc_st_proto->c.proto->table, dest->addr,
-				dest->len);
+				      dest->len);
 
 		  if (!n || !n->routes || !n->routes->attrs)
 		    {

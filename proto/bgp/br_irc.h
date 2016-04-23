@@ -151,6 +151,7 @@ struct ipc_mci
 struct ipc_mcni
 {
   struct prefix ipa;
+  uint32_t locks;
   p_md_obj bref;
 };
 
