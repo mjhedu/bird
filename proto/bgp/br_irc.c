@@ -736,7 +736,7 @@ irc_proto_cache_n (ip_addr *prefix, char *net_name, uint32_t flags)
 }
 
 static void
-irc_proto_cache_map_cti (ip_addr *prefix, uint8_t pnode_pfxsz, char *name,
+irc_proto_cache_map_cti (ip_addr *prefix, uint8_t pnode_pfxlen, char *name,
 			 uint32_t flags)
 {
   if (!name[0])
@@ -791,7 +791,7 @@ irc_proto_cache_map_cti (ip_addr *prefix, uint8_t pnode_pfxsz, char *name,
 
       // chan to node refs
 
-      ip_addr ipa = NETWORK(*prefix, pnode_pfxsz);
+      ip_addr ipa = NETWORK(*prefix, pnode_pfxlen);
 
       struct ipc_mcni *imnci = ht_get (item->gt2.ht, (unsigned char*) &ipa,
 				       sizeof(ip_addr));
@@ -803,7 +803,7 @@ irc_proto_cache_map_cti (ip_addr *prefix, uint8_t pnode_pfxsz, char *name,
 
       imnci = malloc (sizeof(struct ipc_mcni));
       imnci->ipa.addr = ipa;
-      imnci->ipa.len = pnode_pfxsz;
+      imnci->ipa.len = pnode_pfxlen;
 
       md_alloc (&item->gt2.r, 0, 0, imnci);
       imnci->bref = item->gt2.r.pos;
@@ -837,7 +837,7 @@ irc_proto_cache_map_cti (ip_addr *prefix, uint8_t pnode_pfxsz, char *name,
 
       // chan to node
 
-      ip_addr ipa = NETWORK(*prefix, pnode_pfxsz);
+      ip_addr ipa = NETWORK(*prefix, pnode_pfxlen);
 
       struct ipc_mcni *imnci = ht_get (item->gt2.ht, (unsigned char*) &ipa,
 				       sizeof(ip_addr));
