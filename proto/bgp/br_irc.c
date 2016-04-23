@@ -2617,10 +2617,10 @@ irc_relay_message (__sock_o origin, char *code, char *target, char *message)
 				 strlen (msg->args) - 1);
       if (item)
 	{
-	  hashtable_t *ht = ht_create (128);
-	  MD_START(&item->gt1.r, ip_addr, dest)
+	  //hashtable_t *ht = ht_create (128);
+	  MD_START(&item->gt2.r, struct prefix, dest)
 		{
-		  net *n = net_find (brc_st_proto->c.proto->table, *dest,
+		  /*net *n = net_find (brc_st_proto->c.proto->table, *dest,
 				     (sizeof(ip_addr) * 8));
 
 		  if (!n || !n->routes || !n->routes->attrs)
@@ -2636,10 +2636,10 @@ irc_relay_message (__sock_o origin, char *code, char *target, char *message)
 		    }
 
 		  ht_set (ht, (unsigned char*) &ipnet, sizeof(ipnet), (void*) 1,
-			  0);
+			  0);*/
 
-		  n = net_find (brc_st_proto->c.proto->table, ipnet,
-				n->n.ea_cache.pnode_pxlen);
+		  net * n = net_find (brc_st_proto->c.proto->table, dest->addr,
+				dest->len);
 
 		  if (!n || !n->routes || !n->routes->attrs)
 		    {
@@ -2651,7 +2651,7 @@ irc_relay_message (__sock_o origin, char *code, char *target, char *message)
 		      continue;
 		    }
 
-		  pkt->dest.addr = ipnet;
+		  pkt->dest.addr = n->n.prefix;
 		  pkt->dest.len = (unsigned int) n->n.pxlen;
 		  pkt->code = PROT_RELAY_FORWARD;
 		  pkt->ttl = 100;
@@ -2659,7 +2659,7 @@ irc_relay_message (__sock_o origin, char *code, char *target, char *message)
 		  irc_relay_send_pkt_out (origin, pkt, n);
 
 		}MD_END
-	  ht_destroy (ht);
+	  //ht_destroy (ht);
 	}
       else
 	{
