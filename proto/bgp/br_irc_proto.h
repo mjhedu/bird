@@ -242,7 +242,7 @@ typedef struct irc_ea_payload
 
 #define IRC_GEN_AC_CHR		"!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~ "
 #define IRC_NICK_AC_CHR		"0123456789<>ABCDEFGHIJKLMNOPQRSTUVWXYZ[]^_`abcdefghijklmnopqrstuvwxyz{|}"
-#define IRC_USER_AC_CHR		T_MSG_ALPHANUM
+#define IRC_USER_AC_CHR		IRC_NICK_AC_CHR
 #define IRC_REAL_AC_CHR		IRC_NICK_AC_CHR "* "
 
 #define IRC_NICK_AC_CHR_C	"#" IRC_NICK_AC_CHR

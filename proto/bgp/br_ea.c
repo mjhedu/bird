@@ -161,6 +161,8 @@ br_route_remove (gtable_t *routes, struct bgp_br_route * bbr)
 {
   struct proto *p = brc_st_proto->c.proto;
 
+  bbr->n->n.pso = NULL;
+  bbr->n->n.kflags = 0;
   memset (&bbr->n->n.ea_cache, 0x0, sizeof(irc_ea_payload));
 
   rte_update (p, bbr->n, NULL);

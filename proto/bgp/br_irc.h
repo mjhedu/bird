@@ -38,7 +38,7 @@ rx_handler (__sock_o pso, void *data);
 
 rx_handler irc_c_user, irc_c_nick, irc_c_userhost, irc_c_dummy, irc_c_join,
     irc_c_part, irc_c_privmsg, irc_c_whois, irc_c_ping, irc_c_userip,
-    irc_c_cmodeis;
+    irc_c_mode;
 
 int
 net_proto_irc_socket_init0 (__sock_o pso);
@@ -137,8 +137,7 @@ gtable_t _ntglobal;
 #define		DSP_CODE_IRC_MESSAGE	0x3C
 
 int
-irc_relay_message (__sock_o origin, char *code, char *target,
-		   char *message);
+irc_relay_message (__sock_o origin, char *code, char *target, char *message);
 
 #define M1_CSTRING(m,a) char _b[1024]; snprintf(_b, sizeof(_b), m, a);
 
@@ -197,5 +196,15 @@ struct irc_srv_config
 };
 
 struct irc_srv_config _icf_global;
+
+#define MAX_UCF		sizeof(uint8_t) * 8
+
+typedef int
+(_uc_cproc) (irc_ea_payload *pl);
+
+_uc_cproc *uc_flags_map[MAX_UCF];
+
+#define UCMODE_OPER	1
+#define UCMODE_VOICE	2
 
 #endif /* PROTO_BGP_BR_IRC_H_ */

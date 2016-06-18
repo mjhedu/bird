@@ -39,6 +39,7 @@ struct generic_table _ntglobal =
   {
     { 0 } };
 
+
 #define F_CTX_CHAN_RADD		(uint32_t)1
 
 static irc_ea_payload *
@@ -1727,7 +1728,7 @@ C_PRELOAD(irc_c_privmsg, !=1)
   return 0;
 }
 
-C_PRELOAD(irc_c_cmodeis, == 0)
+C_PRELOAD(irc_c_mode, == 0)
   str_to_lower (subject);
 
   if (irc_validate_chan_name (subject))
@@ -2088,8 +2089,6 @@ net_proto_irc_socket_destroy0 (__sock_o pso)
 	  irc_proto_cache_n (&bbr->n->n.prefix, bbr->n->n.ea_cache.net_name,
 	  F_IRC_CACHE_REMOVE);
 
-	  bbr->n->n.pso = NULL;
-
 	  br_route_remove (&br_routes, bbr);
 
 	  free (bbr);
@@ -2448,6 +2447,10 @@ irc_proto_proc_update (net *n, uint32_t flags)
 	{
 	  if (!strncmp (name, cache->joined[j].name, MAX_CH_NAME_LEN))
 	    {
+	      if (cache->joined[j].flags != pl->joined[i].flags)
+		{
+
+		}
 	      goto end0;
 	    }
 	}
@@ -2845,7 +2848,7 @@ _irc_startup (pmda bpca)
   ht_set (irc_crf_in_table, "PART", 4, irc_c_part, 0);
   ht_set (irc_crf_in_table, "PRIVMSG", 7, irc_c_privmsg, 0);
   ht_set (irc_crf_in_table, "NOTICE", 6, irc_c_privmsg, 0);
-  ht_set (irc_crf_in_table, "MODE", 4, irc_c_cmodeis, 0);
+  ht_set (irc_crf_in_table, "MODE", 4, irc_c_mode, 0);
   ht_set (irc_crf_in_table, "WHOIS", 5, irc_c_whois, 0);
   ht_set (irc_crf_in_table, "USERIP", 5, irc_c_userip, 0);
   ht_set (irc_crf_in_table, "LIST", 4, irc_c_list, 0);
